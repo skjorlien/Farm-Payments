@@ -87,6 +87,7 @@ def county_boxplot(df, FIP = None):
         county = data['county'].iloc[0]
 
     years = range(2006, 2022)
+    
     dta = [data[data['year'] == year]['payment'] for year in years] 
 
     fig, ax = plt.subplots(figsize= (12,8))
