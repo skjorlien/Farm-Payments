@@ -35,22 +35,23 @@ if __name__ == "__main__":
 
     print('Starting the processing')
     # LAME WAY
-    # for prog in progs: 
-    #     result = program_boxplot_wrapper(df, prog)
-    #     print(result)
+    for prog in progs: 
+        result = program_boxplot_wrapper(df, prog)
+        print(result)
 
-    # for fip in fips:
-    #     result = county_boxplot_wrapper(df, fip)
-    #     print(result)
+    for fip in fips:
+        result = county_boxplot_wrapper(df, fip)
+        print(result)
 
-    # print(program_boxplot_wrapper(df))
-    # print(county_boxplot_wrapper(df))
+    print(program_boxplot_wrapper(df))
+    print(county_boxplot_wrapper(df))
 
     # cool Way 
-    with ThreadPoolExecutor() as executor: 
-        results = [executor.submit(program_boxplot_wrapper, df, prog) for prog in progs]
-        for f in as_completed(results): 
-            print(f.result())
+    # NOTE: This doesn't work because matplotlib doesn't do great working on different Pools
+    # with ThreadPoolExecutor() as executor: 
+    #     results = [executor.submit(program_boxplot_wrapper, df, prog) for prog in progs]
+    #     for f in as_completed(results): 
+    #         print(f.result())
 
     finish = time.time()
     print(f"Finished in {round((finish - start)/60, 2)} mins")

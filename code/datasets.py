@@ -3,15 +3,10 @@ import pickle
 import pandas as pd
 import numpy as np
 import settings
-
-# Cleaning TODO: 
-# - are there any errors in FIP codes?
-# - there is a decision to be made about programYear vs year
-# - right now, I grab year from payment date, not accounting program year. Is that right?
-# Why are payments in 2022 $0 across the board?
+import dask.dataframe as dd
 
 
-def aggregate(df, groupby = []):
+def aggregate(df, groupby = [], payment=True, customer = False):
     '''aggregate Takes a dataframe and a list of groupings ('level') and aggregates data by 
     summing over payments, and counting unique payees
 
@@ -20,13 +15,23 @@ def aggregate(df, groupby = []):
         groupby: a list of columns to pass to pandas method `groupby`
 
     Returns:
-        pandas DataFrame: Aggregated by groupby cols
+        dask DataFrame: Aggregated by groupby cols
     '''
-    aggFn = {
-                'payment': 'sum',
-                'customer': pd.Series.nunique,
-            }
+    nunique = dd.Aggregation(
+        name="nunique",
+        chunk=lambda s: s.apply(lambda x: list(set(x))),
+        agg=lambda s0: s0.obj.groupby(level=list(range(s0.obj.index.nlevels))).sum(),
+        finalize=lambda s1: s1.apply(lambda final: len(set(final))),
+    )
+    aggFn = {} 
+    if payment: 
+        aggFn['payment'] = 'sum'
+    if customer:
+        aggFn['customer'] = nunique
 
+    if len(aggFn) == 0:
+        raise ValueError('Must aggregate by either payment, customer, or both.')
+    
     for col in groupby: 
         if col not in df.columns:
             print(f'Column {col} not found')
@@ -42,20 +47,26 @@ def aggregate(df, groupby = []):
 
 
 # load data and aggregate (if 'groupby' is passed as a kwarg)
-def load_data(groupby = []):
-    '''load_data opens the pickled, clean transaction-level data
+def load_data(groupby = [], source='FOIA', **kwargs):
+    '''load_data is for playing around with different data loading techniques without messing up other parts of my code.
 
     Returns:
-        pandas DataFrame: Transaction level data. Although it aggregates by 'level' if passed as kwarg
+        dask (or pandas) DataFrame: Transaction level data. Although it aggregates by 'level' if passed as kwarg
     '''
-    file = open(settings.CLEANDATA, 'rb')
-    df = pd.DataFrame(pickle.load(file))
-    df = aggregate(df, groupby=groupby)
+
+    # file = open(settings.CLEANDATA, 'rb')
+    path = settings.PARQUET_FOIA if source=='FOIA' else settings.PARQUET_Public
+
+    df = dd.read_parquet(f"{path}")
+
+    df = aggregate(df, groupby=groupby, **kwargs)
     return df
 
-
 if __name__ == "__main__":
+    import time 
 
     df = load_data()
-
-    print(df[df['county'] == 'Baldwin']['state'].iloc[0])
+    states = pd.read_csv('./data/raw/state_codes.csv')
+    states['statecode'] = states['statecode'].astype('str').str.zfill(2)
+    df = df.merge(states, how='left', on=['statecode'])
+    print(df.head())

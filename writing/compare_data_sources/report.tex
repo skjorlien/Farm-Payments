@@ -1,0 +1,38 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{enumitem, amsfonts, tikz, amssymb, hyperref, longtable, float, amsmath, graphicx, multicol, multirow, booktabs}
+\usepackage[margin=1in]{geometry}
+\usetikzlibrary{quotes}
+\usetikzlibrary{positioning}
+
+\title{Data Source Summary Tables}
+
+\author{Scott Kjorlien}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section*{FOIA Data Summary}
+\input{../../output/tables/FOIA_summary_table.tex}
+
+\newpage
+\section*{Public Data Summary}
+\input{../../output/tables/Public_summary_table.tex}
+
+\section*{Notes \& Takeaway}
+Beginning in 2010, the two different data sources diverge. The Public Data, found at 
+\href{https://www.fsa.usda.gov/news-room/efoia/electronic-reading-room/frequently-requested-information/payment-files-information/index}{this site}
+has more records, a greater sum, larger mean payments, and often a higher maximum than does the 
+FOIA'd data. As of July 31, 2023, I have not investigated the source of the discrepancies. My initial hunch  
+is that one or more programs were omitted in the FOIA. 
+
+Without digging deeper into the discrepancies, I recommend using the Public Data because 
+\begin{itemize}
+    \item We can use more recent data 
+    \item The public data seems more complete 
+    \item It will be easier to incorporate future data sources if USDA updates the public webpage
+    \item There are no additional useful fields from the FOIA'd data that we need to make use of
+\end{itemize}
+
+\end{document}

@@ -8,13 +8,15 @@ from matplotlib.ticker import FuncFormatter
 import settings 
 from utils import utils 
 import glob
+import dask.dataframe as dd
 
 ## Settings/Helpers
 milFormatter = FuncFormatter(lambda x, pos: '{:,.0f}'.format(x/1e6) + ' M')
 thouFormatter = FuncFormatter(lambda x, pos: '{:,.0f}'.format(x/1e3) + ' T')
 
 ## Annual Payment Totals by Program
-def payment_trend(df, program = 'Annual Totals'):
+def payment_trend(program = 'Annual Totals'):
+    df
     aggdf = aggregate(df, groupby=['programCode', 'programName', 'year'])
     AnnualTot = aggregate(df, groupby=['year'])
     AnnualTot['programName'] = 'Annual Totals'
@@ -38,19 +40,64 @@ def payment_trend(df, program = 'Annual Totals'):
     fname = f'plot_annualTrend_{program}.png'
     return fig, ax, fname
 
+## NOTE: DONE
+def top_programs_by_year_table(aggdf: pd.DataFrame, headnum = 3): 
+    '''top_programs_by_year_table 
 
-def top_programs_by_year_by_county(df, year = None, FIP = None, headnum = 10): 
-    if FIP is None:
-        aggdf = aggregate(df, groupby=['programCode', 'programName', 'year'])
-    else:
-        aggdf = aggregate(df, groupby=['FIP', 'programCode', 'programName', 'year'])
-        aggdf = aggdf[aggdf['FIP'] == 'FIP']
+    Args:
+        aggdf (pd.DataFrame): Should be dataframe already aggregated by ['year', 'programName'] with only 'payment' summary col
+        headnum (int, optional): Number of 'top n' programs to display for each year. Defaults to 3.
+
+    Returns:
+        str: a Formatted latex table. Saving to be done on the outside.
+    '''
+    summarytable = aggdf.groupby(['year']).apply(lambda x: x.nlargest(headnum, 'payment'))
+    summarytable.drop(columns='year', inplace=True)
+    summarytable.index = summarytable.index.droplevel(level=1)
+    summarytable.set_index('programName', append=True, inplace=True)
+
+    return summarytable.to_latex(
+            float_format=lambda x: "\$ {:,.2f} M".format(x/1000000)
+        )   
+
+
+def top_states_by_year_table(aggdf: pd.DataFrame, headnum = 5):
+   '''top_states_by_year_table 
+
+    Args:
+        aggdf (pd.DataFrame): Should be dataframe already aggregated by ['year', 'statecode'] with only 'payment' summary col
+        headnum (int, optional): Number of 'top n' programs to display for each year. Defaults to 3.
+
+    Returns:
+        str: a Formatted latex table. Saving to be done on the outside.
+    '''
+   summarytable = aggdf.groupby(['year']).apply(lambda x: x.nlargest(headnum, 'payment'))
+   summarytable.drop(columns='year', inplace=True)
+   summarytable.index = summarytable.index.droplevel(level=1)
+   summarytable.set_index('stateabbr', append=True, inplace=True)
     
-    if year is not None: 
-        aggdf = aggdf[aggdf['year'] == year]
+   return summarytable.to_latex(
+       float_format=lambda x: "\$ {:,.2f} M".format(x/1000000)
+   )   
 
-    aggdf.sort_values(by = 'payment', inplace=True, ascending=False)
-    print(aggdf.head(headnum)) 
+
+def top_counties_by_year_table(df: pd.DataFrame, headnum = 5):
+    aggdf = df.groupby(['year', 'FIP']).agg({'payment': 'sum'}).reset_index()
+    cnty_state_crswlk = df.drop_duplicates(subset=['FIP'])[['FIP', 'county', 'state']]
+    cnty_state_crswlk['cntyState'] = cnty_state_crswlk.apply(lambda x: f"{x['county']}, {x['state']}", axis=1)
+    cnty_state_crswlk.drop(columns=['county','state'], inplace=True)
+    
+    summarytable = aggdf.groupby(['year']).apply(lambda x: x.nlargest(headnum, 'payment'))
+    summarytable = summarytable.merge(cnty_state_crswlk, how='left')
+    summarytable.set_index('year', inplace=True)
+    summarytable.drop(columns=['FIP'], inplace=True)
+    summarytable.rename(columns = {'cntyState': 'County'}, inplace=True)
+    summarytable.set_index('County', append=True, inplace=True)
+
+    return summarytable.to_latex(
+        float_format=lambda x: "\$ {:,.2f} M".format(x/1000000)
+    )   
+
 
 
 def program_boxplot(df, prog = None):
@@ -197,7 +244,45 @@ def gif_all():
             utils.gifify(imgs, fname)
 
 
+def summary_stats(df: dd.DataFrame):
+    df = df[['year', 'payment']]
+    df = df.groupby(['year']).agg(['mean', 'max', 'sum', 'std', 'count'])
+    return df.compute()
+
+
+def compare_data_sources():
+    df1 = load_data(source='FOIA')
+    df2 = load_data(source='Public')
+    df1['payment'] = np.log(df1['payment'])
+    df2['payment'] = np.log(df2['payment'])
+    years = range(2004, 2023)
+    
+    dta1 = [df1[df1['year'] == year]['payment'] for year in years] 
+    dta2 = [df2[df2['year'] == year]['payment'] for year in years] 
+
+    fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize= (12,8))
+    ax1.boxplot(dta1, vert=True, labels=years) 
+    ax2.boxplot(dta2, vert=True, labels=years)
+    ax1.yaxis.grid(True) 
+    ax2.yaxis.grid(True) 
+    title = "FOIA vs Public Data"
+    # fig.set(title = title,
+    #        xlabel='Year', 
+    #        ylabel='Payment ($)')
+    fig.tight_layout() 
+    # fname =  f"{county}-{state}_boxplot.png"
+    return fig, (ax1, ax2)
+
 if __name__ == '__main__':
-    df = load_data()
-    fig, ax, fname = county_boxplot(df)
+    # sources = ['FOIA', 'Public']
+    # for source in sources: 
+    #     df = load_data(source=source)
+    #     df = summary_stats(df)
+    #     df.sort_index(inplace=True)
+    #     tex = df.to_latex()
+    #     fname = f'{source}_summary_table.tex'
+    #     with open(os.path.join(settings.OUTDIR, 'tables', fname), 'w') as f:
+    #         f.write(tex)
+
+    fig, ax = compare_data_sources()
     plt.show()

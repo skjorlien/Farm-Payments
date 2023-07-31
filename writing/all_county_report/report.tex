@@ -1,0 +1,47 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{enumitem, amsfonts, tikz, amssymb, longtable, float, amsmath, graphicx, multicol, multirow, booktabs}
+\usepackage[margin=1in]{geometry}
+\usetikzlibrary{quotes}
+\usetikzlibrary{positioning}
+
+\title{Payments Data Visualizations}
+
+\author{Scott Kjorlien}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section*{Nationwide Summaries}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=7in]{../output/plot_annualTrend_Annual Totals.png}
+\end{figure}
+
+\newpage
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=7in]{../output/boxplots/counties/All Counties-None_boxplot.png}
+\end{figure}
+
+\newpage
+
+\subsection*{Top Programs by Year}
+\input{../output/tables/all-counties_prog-table.tex}
+
+\newpage
+
+\subsection*{Highest Paid Counties by Year}
+\input{../output/tables/top_counties_table.tex}
+
+\subsection*{Highest Paid States by Year}
+\input{../output/tables/top_states_table.tex}
+
+
+\newpage
+
+\input{../output/county_aggregated.tex}
+
+
+\end{document}
