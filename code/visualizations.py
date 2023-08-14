@@ -10,27 +10,33 @@ from utils import utils
 import glob
 import dask.dataframe as dd
 
+'''
+All visualizations should take transaction-level dask df with arguments 
+for filtering. 
+
+All visualizations should return fig, ax, fname (file name)
+All tables should return latex, fname
+'''
+
+
 ## Settings/Helpers
 milFormatter = FuncFormatter(lambda x, pos: '{:,.0f}'.format(x/1e6) + ' M')
 thouFormatter = FuncFormatter(lambda x, pos: '{:,.0f}'.format(x/1e3) + ' T')
 
 ## Annual Payment Totals by Program
-def payment_trend(program = 'Annual Totals'):
-    df
+def payment_trend(df: dd.DataFrame, program = 'Annual Totals'):
     aggdf = aggregate(df, groupby=['programCode', 'programName', 'year'])
     AnnualTot = aggregate(df, groupby=['year'])
     AnnualTot['programName'] = 'Annual Totals'
-    aggdf = pd.concat([aggdf, AnnualTot])
-    
+    aggdf = dd.concat([aggdf, AnnualTot]).compute()
     minyear = np.min(aggdf['year'])
     maxyear = np.max(aggdf['year'])
-
     filt_df = aggdf[aggdf['programName'] == program]
     y = filt_df['payment']
     x = filt_df['year']
 
     fig, ax = plt.subplots()
-    ax.plot(x, y)
+    ax.bar(x, y)
     ax.set_xlabel('Year')
     ax.set_ylabel('Payments')
     ax.set_xlim(minyear, maxyear)
@@ -40,29 +46,40 @@ def payment_trend(program = 'Annual Totals'):
     fname = f'plot_annualTrend_{program}.png'
     return fig, ax, fname
 
-## NOTE: DONE
-def top_programs_by_year_table(aggdf: pd.DataFrame, headnum = 3): 
+
+def top_programs_by_year_table(df: dd.DataFrame, FIP=None, headnum = 3): 
     '''top_programs_by_year_table 
 
     Args:
         aggdf (pd.DataFrame): Should be dataframe already aggregated by ['year', 'programName'] with only 'payment' summary col
+        FIP (int, optional): if provided, filter the aggregate
         headnum (int, optional): Number of 'top n' programs to display for each year. Defaults to 3.
 
     Returns:
         str: a Formatted latex table. Saving to be done on the outside.
     '''
+    if FIP: 
+        df = df[df['FIP'] == FIP]
+        county = df['county'].compute().iloc[0]
+        state = df['state'].compute().iloc[0]
+        fname =  f"{county}-{state}_prog-table.tex"
+    else: 
+        fname = "all-counties_prog-table.tex"
+
+    aggdf = aggregate(df, groupby=['year', 'programName'])
+
     summarytable = aggdf.groupby(['year']).apply(lambda x: x.nlargest(headnum, 'payment'))
+    summarytable = summarytable.compute()
     summarytable.drop(columns='year', inplace=True)
     summarytable.index = summarytable.index.droplevel(level=1)
     summarytable.set_index('programName', append=True, inplace=True)
-
     return summarytable.to_latex(
             float_format=lambda x: "\$ {:,.2f} M".format(x/1000000)
-        )   
+        ), fname
 
 
-def top_states_by_year_table(aggdf: pd.DataFrame, headnum = 5):
-   '''top_states_by_year_table 
+def top_states_by_year_table(df: dd.DataFrame, headnum = 5):
+    '''top_states_by_year_table 
 
     Args:
         aggdf (pd.DataFrame): Should be dataframe already aggregated by ['year', 'statecode'] with only 'payment' summary col
@@ -71,36 +88,42 @@ def top_states_by_year_table(aggdf: pd.DataFrame, headnum = 5):
     Returns:
         str: a Formatted latex table. Saving to be done on the outside.
     '''
-   summarytable = aggdf.groupby(['year']).apply(lambda x: x.nlargest(headnum, 'payment'))
-   summarytable.drop(columns='year', inplace=True)
-   summarytable.index = summarytable.index.droplevel(level=1)
-   summarytable.set_index('stateabbr', append=True, inplace=True)
-    
-   return summarytable.to_latex(
-       float_format=lambda x: "\$ {:,.2f} M".format(x/1000000)
-   )   
+    aggdf = aggregate(df, groupby=['year', 'stateabbr'])
+    summarytable = aggdf.groupby(['year']).apply(lambda x: x.nlargest(headnum, 'payment'))
+    summarytable = summarytable.compute()
+    summarytable.drop(columns='year', inplace=True)
+    summarytable.index = summarytable.index.droplevel(level=1)
+    summarytable.set_index('stateabbr', append=True, inplace=True)
+        
+    fname = "top_states_table.tex"
+    return summarytable.to_latex(
+        float_format=lambda x: "\$ {:,.2f} M".format(x/1000000)
+    ), fname
 
 
-def top_counties_by_year_table(df: pd.DataFrame, headnum = 5):
-    aggdf = df.groupby(['year', 'FIP']).agg({'payment': 'sum'}).reset_index()
+def top_counties_by_year_table(df: dd.DataFrame, headnum = 5):
+    aggdf = aggregate(df, groupby = ['year', 'FIP'])
     cnty_state_crswlk = df.drop_duplicates(subset=['FIP'])[['FIP', 'county', 'state']]
+    cnty_state_crswlk = cnty_state_crswlk.compute()
     cnty_state_crswlk['cntyState'] = cnty_state_crswlk.apply(lambda x: f"{x['county']}, {x['state']}", axis=1)
     cnty_state_crswlk.drop(columns=['county','state'], inplace=True)
     
     summarytable = aggdf.groupby(['year']).apply(lambda x: x.nlargest(headnum, 'payment'))
+    summarytable = summarytable.compute()
     summarytable = summarytable.merge(cnty_state_crswlk, how='left')
     summarytable.set_index('year', inplace=True)
     summarytable.drop(columns=['FIP'], inplace=True)
     summarytable.rename(columns = {'cntyState': 'County'}, inplace=True)
     summarytable.set_index('County', append=True, inplace=True)
 
+    fname = "top_counties_table.tex"
+
     return summarytable.to_latex(
         float_format=lambda x: "\$ {:,.2f} M".format(x/1000000)
-    )   
+    ), fname
 
 
-
-def program_boxplot(df, prog = None):
+def program_boxplot(df: dd.DataFrame, prog = None, log=True):
     if prog is None: 
         data = df
         prog = "All Programs"
@@ -108,7 +131,10 @@ def program_boxplot(df, prog = None):
         data = df[df['programName'] == prog]
 
     years = range(2006, 2022)
-    dta = [data[data['year'] == year]['payment'] for year in years]
+    if log:
+        dta = [data[data['year'] == year]['logpayment'] for year in years]
+    else: 
+        dta = [data[data['year'] == year]['payment'] for year in years]
 
     # Generate a list of dataseries, one for each year
     fig, ax = plt.subplots(figsize=(12,8)) 
@@ -123,19 +149,22 @@ def program_boxplot(df, prog = None):
     return fig, ax, fname
 
 
-def county_boxplot(df, FIP = None): 
+def county_boxplot(df: dd.DataFrame, FIP = None, log=True): 
     if FIP is None: 
         data = df 
         state = None
         county = "All Counties"
     else:
         data = df[df['FIP'] == FIP]
-        state = data['state'].iloc[0]
-        county = data['county'].iloc[0]
+        state = data['state'].compute().iloc[0]
+        county = data['county'].compute().iloc[0]
 
     years = range(2006, 2022)
     
-    dta = [data[data['year'] == year]['payment'] for year in years] 
+    if log:
+        dta = [data[data['year'] == year]['logpayment'] for year in years]
+    else: 
+        dta = [data[data['year'] == year]['payment'] for year in years]
 
     fig, ax = plt.subplots(figsize= (12,8))
     ax.boxplot(dta, vert=True, labels=years) 
@@ -152,7 +181,15 @@ def county_boxplot(df, FIP = None):
 ''''
 COUNTY-LEVEL Chloropleth
 '''
-def us_county_map(df, legend_fmt = None, **kwargs):
+def us_county_map(df: dd.DataFrame, legend_fmt = None, variable=None, year=2020, **kwargs):
+    df = aggregate(df, groupby=['FIP', 'year'], customer=True)
+    df = df[df['year'] == year]
+    df['concentration'] = df['payment'] / df['customer']
+    if variable in ['payment', 'concentration', 'customer']:
+        pass 
+    else: 
+        raise ValueError('must provide a variable like payment, concentration, or customer') 
+
     cols = list(df.columns)
     vmin = kwargs.get('vmin', None)
     vmax = kwargs.get('vmax', None)
@@ -198,7 +235,7 @@ def us_county_map(df, legend_fmt = None, **kwargs):
                     )
     state_map.boundary.plot(ax=ax, color = 'black', linewidth=1)
     ax.set_axis_off()
-    return fig, ax
+    return fig, ax,
 
 
 def mapper_wrapper(const_colorbar = False, years = range(2006, 2022), dims = ['payment', 'customer', 'concentration']):
@@ -283,6 +320,6 @@ if __name__ == '__main__':
     #     fname = f'{source}_summary_table.tex'
     #     with open(os.path.join(settings.OUTDIR, 'tables', fname), 'w') as f:
     #         f.write(tex)
-
-    fig, ax = compare_data_sources()
+    df = load_data()
+    fig, ax, fname = program_boxplot(df, prog="DCP - DIRECT")
     plt.show()

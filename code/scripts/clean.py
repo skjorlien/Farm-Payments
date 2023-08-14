@@ -69,6 +69,7 @@ def extract_zip(df):
     # df['Zip Code'] = split[0]
     return df
 
+
 def rename_and_select(df, column_dict=COLNAMES):
     df = df.rename(columns=column_dict)
     df = df[list(column_dict.values())]
@@ -204,6 +205,9 @@ if __name__ == '__main__':
     states = pd.read_csv('./data/raw/state_codes.csv')
     states['statecode'] = states['statecode'].astype('str').str.zfill(2)
     df = df.merge(states, how='left', on=['statecode'])
+
+    # Add Log Payment 
+    df['logpayment'] = np.log(df['payment'])
 
 
     savedir = f"{datapath}/clean/parquet-Public"

@@ -47,7 +47,7 @@ def aggregate(df, groupby = [], payment=True, customer = False):
 
 
 # load data and aggregate (if 'groupby' is passed as a kwarg)
-def load_data(groupby = [], source='FOIA', **kwargs):
+def load_data(groupby = [], source='Public', **kwargs):
     '''load_data is for playing around with different data loading techniques without messing up other parts of my code.
 
     Returns:
@@ -66,7 +66,9 @@ if __name__ == "__main__":
     import time 
 
     df = load_data()
-    states = pd.read_csv('./data/raw/state_codes.csv')
-    states['statecode'] = states['statecode'].astype('str').str.zfill(2)
-    df = df.merge(states, how='left', on=['statecode'])
-    print(df.head())
+    print(df['county'].compute().iloc[0])
+
+    # states = pd.read_csv('./data/raw/state_codes.csv')
+    # states['statecode'] = states['statecode'].astype('str').str.zfill(2)
+    # df = df.merge(states, how='left', on=['statecode'])
+    # print(df.head())
