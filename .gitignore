@@ -1,4 +1,7 @@
 /.venv
+/venv
 /.vscode
 /data
 .Rproj.user
+.cfg 
+.exe

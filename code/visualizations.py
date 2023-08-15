@@ -310,6 +310,51 @@ def compare_data_sources():
     # fname =  f"{county}-{state}_boxplot.png"
     return fig, (ax1, ax2)
 
+
+def program_year_mean_pmt():
+    foia_data = load_data(source="FOIA")
+    public_data = load_data(source="Public")
+
+    foia_data = foia_data.categorize(columns='year')
+    public_data = public_data.categorize(columns='year')
+
+    output_foia = foia_data.pivot_table(index='programName', columns='year', values='payment')
+    output_public = public_data.pivot_table(index='programName', columns='year', values='payment')
+    output_foia = output_foia.fillna(0).compute()
+    output_public = output_public.fillna(0).compute()
+
+    fname = "program_year_mean_diff.tex"
+    return (output_public - output_foia).to_latex(
+        float_format=lambda x: "\$ {:,.2f}".format(x),
+        longtable = True
+    ), fname
+
+
+def state_year_mean_pmt():
+    foia_data = load_data(source="FOIA")
+    public_data = load_data(source="Public")
+
+    foia_data = foia_data.categorize(columns='year')
+    public_data = public_data.categorize(columns='year')
+
+    output_foia = foia_data.pivot_table(index='stateabbr', columns='year', values='payment')
+    output_public = public_data.pivot_table(index='stateabbr', columns='year', values='payment')
+    output_foia = output_foia.fillna(0).compute()
+    output_public = output_public.fillna(0).compute()
+
+    fname = "state_year_mean_diff.tex"
+    return (output_public - output_foia).to_latex(
+        float_format=lambda x: "\$ {:,.2f}".format(x), 
+        longtable = True
+    ), fname
+
+def payment_distribution_by_year(df: dd.DataFrame, year='2020'):
+    df = df[df['year'] == year]
+    df['month'] = df['paymentDate'].dt.month
+    fig, ax = plt.subplots()
+    ax.bar()
+
+
 if __name__ == '__main__':
     # sources = ['FOIA', 'Public']
     # for source in sources: 
@@ -320,6 +365,11 @@ if __name__ == '__main__':
     #     fname = f'{source}_summary_table.tex'
     #     with open(os.path.join(settings.OUTDIR, 'tables', fname), 'w') as f:
     #         f.write(tex)
-    df = load_data()
-    fig, ax, fname = program_boxplot(df, prog="DCP - DIRECT")
-    plt.show()
+    # df = load_data()
+    tex, fname = program_year_mean_pmt()
+    with open(os.path.join(settings.OUTDIR, 'tables', fname), 'w') as f:
+        f.write(tex)
+
+    tex, fname = state_year_mean_pmt()
+    with open(os.path.join(settings.OUTDIR, 'tables', fname), 'w') as f:
+        f.write(tex)
