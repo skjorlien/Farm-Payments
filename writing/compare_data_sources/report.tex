@@ -1,11 +1,11 @@
 \documentclass{article}
 \usepackage[utf8]{inputenc}
-\usepackage{enumitem, amsfonts, tikz, amssymb, hyperref, longtable, float, amsmath, graphicx, multicol, multirow, booktabs}
-\usepackage[margin=1in]{geometry}
+\usepackage{enumitem, amsfonts, subcaption, indentfirst, rotating, tikz, lscape, amssymb, hyperref, longtable, float, amsmath, graphicx, multicol, multirow, booktabs}
+\usepackage[margin=.5in]{geometry}
 \usetikzlibrary{quotes}
 \usetikzlibrary{positioning}
 
-\title{Data Source Summary Tables}
+\title{Data Source Report}
 
 \author{Scott Kjorlien}
 \date{\today}
@@ -13,30 +13,286 @@
 \begin{document}
 \maketitle
 
-\section*{TEST}
-\input{../../output/tables/state_year_mean_diff.tex}
-\input{../../output/tables/program_year_mean_diff.tex}
+\section*{Introduction} 
+The previous GSR for this project filed a FOIA request for US Farm Payments data in early 2022. After this project received 
+the discs with data files in excel format (FOIA Data), USDA published all of the data on 
+\href{https://www.fsa.usda.gov/news-room/efoia/electronic-reading-room/frequently-requested-information/payment-files-information/index}{their website} 
+(Public Data).\\
 
-\section*{FOIA Data Summary}
+The purpose of this report is to analyze and document differences between the data sources, and determine the path forward: 
+continue periodically requesting data through the FOIA process, or switch to the Publicly available data.
+
+\section*{Summary Statistics}
+The tables below show annualized summary statistics for the two sources of data. Upon first glance, we see that the public 
+data extends the horizon back to 2004 and up to 2022. It remains to be seen how complete those years' data are. However, 
+judging by the count of records, 2021 appears to be rather incomplete in the FOIA data with 80K records as opposed to the 4M records 
+in the public data. \\
+
+From 2006 through 2009, all summary statistics are identical. From then on, however, we have more records, higher totals, 
+weakly higher maxima, and generally higher sums in the Public Data. \\ 
+This implies the public data is more complete, but it is unclear what was missing from the FOIA data. 
+
+
+\subsection*{FOIA Data Summary}
 \input{../../output/tables/FOIA_summary_table.tex}
 
-\newpage
-\section*{Public Data Summary}
+\subsection*{Public Data Summary}
 \input{../../output/tables/Public_summary_table.tex}
 
-\section*{Notes \& Takeaway}
-Beginning in 2010, the two different data sources diverge. The Public Data, found at 
-\href{https://www.fsa.usda.gov/news-room/efoia/electronic-reading-room/frequently-requested-information/payment-files-information/index}{this site}
-has more records, a greater sum, larger mean payments, and often a higher maximum than does the 
-FOIA'd data. As of July 31, 2023, I have not investigated the source of the discrepancies. My initial hunch  
-is that one or more programs were omitted in the FOIA. 
+\section*{Difference Tables}
+The following pages include two tables of a similar flavor. Since we find above that Public Data appears to be more complete than 
+the FOIA data, here we analyze the difference between Public and FOIA for each state by year (see \autoref{stateYearDiffTable}) 
+followed by program by year (see \autoref{progYearDiffTable}). These figures are shown in Millions of USD to 
+examine which categories contribute most to the difference between the two data sources. An analysis of these tables 
+is included in the Summary section of this document
 
-Without digging deeper into the discrepancies, I recommend using the Public Data because 
+\begin{landscape}
+    \small
+    \input{../../output/tables/state_year_mean_diff.tex}
+\end{landscape}
+
+\newpage
+\begin{landscape}
+    \scriptsize
+    \input{../../output/tables/program_year_mean_diff.tex}
+\end{landscape}
+
+
+\newpage
+\section*{Distributions}
+In the following pages, I visualize annual counts of transactions by month of the year. The main intent is to identify patterns and determine if we can 
+confidently use 2022, treating it as complete. 
+
+\subsection*{FOIA 2006 through 2011}
+\begin{figure}[H]
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/FOIA_data_dist_2006.png}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/FOIA_data_dist_2007.png}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/FOIA_data_dist_2008.png}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/FOIA_data_dist_2009.png}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/FOIA_data_dist_2010.png}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/FOIA_data_dist_2011.png}
+    \end{subfigure}
+\end{figure}
+
+\newpage 
+\subsection*{FOIA 2012 through 2017}
+\begin{figure}[H]
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/FOIA_data_dist_2012.png}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/FOIA_data_dist_2013.png}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/FOIA_data_dist_2014.png}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/FOIA_data_dist_2015.png}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/FOIA_data_dist_2016.png}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/FOIA_data_dist_2017.png}
+    \end{subfigure}
+\end{figure}
+
+\newpage 
+\subsection*{FOIA 2018 through 2022}
+\begin{figure}[H]
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/FOIA_data_dist_2018.png}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/FOIA_data_dist_2019.png}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/FOIA_data_dist_2020.png}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/FOIA_data_dist_2021.png}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/FOIA_data_dist_2022.png}
+    \end{subfigure}
+\end{figure}
+
+\subsection*{Public 2006 through 2011}
+\begin{figure}[H]
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/Public_data_dist_2006.png}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/Public_data_dist_2007.png}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/Public_data_dist_2008.png}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/Public_data_dist_2009.png}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/Public_data_dist_2010.png}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/Public_data_dist_2011.png}
+    \end{subfigure}
+\end{figure}
+
+\newpage 
+\subsection*{Public 2012 through 2017}
+\begin{figure}[H]
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/Public_data_dist_2012.png}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/Public_data_dist_2013.png}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/Public_data_dist_2014.png}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/Public_data_dist_2015.png}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/Public_data_dist_2016.png}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/Public_data_dist_2017.png}
+    \end{subfigure}
+\end{figure}
+
+\newpage 
+\subsection*{Public 2018 through 2022}
+\begin{figure}[H]
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/Public_data_dist_2018.png}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/Public_data_dist_2019.png}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/Public_data_dist_2020.png}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/Public_data_dist_2021.png}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../../output/figures/annual_source_distribution/Public_data_dist_2022.png}
+    \end{subfigure}
+\end{figure}
+
+\newpage 
+\section*{Summary}
+Beginning in 2010, the two different data sources diverge. The Public Data
+has more records, a greater sum, larger mean payments, and often a higher maximum than does the 
+FOIA'd data. 
+
+\subsubsection*{Which states are most responsible for the difference?}
+At first glance, it appears that there are many states that contribute significantly to the difference. However, upon close examination 
+combined with the summary report (add ref), most of the states that show a subjectively large difference are the states that already receive the highest payout 
+from these programs. States like Iowa, Indiana, Illinois, Indiana, Kansas, Nebraska, Ohio, and Texas are among the highest earning 
+states from these programs, so seeing discrepancy of say, \$36 million in 2015 in Iowa is a small proportion of the over all earnings 
+in the state that year. \\
+
+While there are many small discrepancies that certainly add up, the most standout difference is D.C. 
+In fact, D.C. is omitted entirely from the FOIA data, so that difference is simply the inclusion of that region.
+For a complete look at the programs relevant to the D.C. region, see the county-level summary report (add ref).
+
+\subsubsection*{Which porgrams are most responsible for the difference?}
+There are 7 programs that are worth noting, listed \autoref{tab:topMovers}. Upon quick glance at the 
+summary report, the first 6 are the largest programs year over year. The last program, the Market Access Program (MAP) 
+is omitted from the FOIA data. In fact, the MAP coincides with only one jurisdiction - D.C. Therefore, it appears that 
+the largest difference between the data sources is due to the omission of the Market Access Program in the FOIA data. 
+
+\begin{table}[H]
+    \caption{Programs with largest change}\label{tab:topMovers}
+    \centering
+    \begin{tabular}{|c|c|}
+        \hline
+        2746 & Supplemental Revenue Assistance Program \\ 
+        2835 & Livestock Forage Program \\ 
+        2837 & Price Loss Coverage Program \\ 
+        2838 & Agricultural Risk Coverage \- County \\ 
+        3132 & CRP \- ANNUAL RENTAL \\ 
+        6742 & DCP \- Direct \\ 
+        7610 & Market Access Program \\
+        \hline
+    \end{tabular}
+\end{table}
+
+
+
+\subsubsection*{Can we trust that Public 2021 and 2022 data is complete?}
+Reviewing The summary statistics, 2021 appears to represent a fairly typical year, suggesting that it is complete in the Public Data. 2021 
+is clearly incomplete in the FOIA data with only 80K records as opposed to the 4M records. \\ 
+By the sum of payments, 2022 is on track as a middling year at \$13 billion. However, this occurs 
+with only 1.8 million transactions, well below the 4 million that is typical of previous years. 
+These two pieces of evidence appear to point in different directions. To resolve the issue, we turn to 
+the distribution chart for Public 2022 data. In each year, October is the month with the highest total 
+payouts, conicident with the beginning of the Federal Government fiscal year. While the total number of 
+payments seems low, the distribution of such payments appears reasonable. We can compare this distribution 
+to that of a known incomplete year. FOIA 2021 is known to be incomplete, and its distribution shows only January is 
+included in the dataset. Seeing all months represented in the Public 2022 distribution is evidence in favor 
+of the data being complete. While we cannot be sure, unless further information is uncovered, 
+it seems a reasonable to proceed with 2022 data. 
+
+\subsection*{Recommendations}
+I recommend using the full set of Public data
 \begin{itemize}
-    \item We can use more recent data 
-    \item The public data seems more complete 
-    \item It will be easier to incorporate future data sources if USDA updates the public webpage
-    \item There are no additional useful fields from the FOIA'd data that we need to make use of
+    \item Complete data in 2021, assumed complete in 2022
+    \item Assuming the USDA will update the Public website, incorporating future years will be a straightforward process 
+    \item Public Dataset appears to be more complete across the board, providing updated figures for each year and jurisdiction, while incorporating the Market Assistance Program in D.C. 
 \end{itemize}
+
+\newpage 
+\section*{Appendix}
+% add program code/name reference.
+\input{../../output/tables/program_reference.tex}
 
 \end{document}

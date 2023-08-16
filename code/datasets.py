@@ -65,8 +65,11 @@ def load_data(groupby = [], source='Public', **kwargs):
 if __name__ == "__main__":
     import time 
 
-    df = load_data()
-    print(df['county'].compute().iloc[0])
+    df = load_data(source = 'Public')
+    df = df.compute()
+    df = df[df['programCode'] == '7610'] 
+    aggdf = df.groupby('stateabbr').count()
+    print(aggdf)
 
     # states = pd.read_csv('./data/raw/state_codes.csv')
     # states['statecode'] = states['statecode'].astype('str').str.zfill(2)

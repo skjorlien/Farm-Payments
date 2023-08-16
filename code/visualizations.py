@@ -281,95 +281,113 @@ def gif_all():
             utils.gifify(imgs, fname)
 
 
-def summary_stats(df: dd.DataFrame):
+## Data Difference Visualizations
+def annualized_summary_stats(source):
+    df = load_data(source = source)
     df = df[['year', 'payment']]
     df = df.groupby(['year']).agg(['mean', 'max', 'sum', 'std', 'count'])
-    return df.compute()
-
-
-def compare_data_sources():
-    df1 = load_data(source='FOIA')
-    df2 = load_data(source='Public')
-    df1['payment'] = np.log(df1['payment'])
-    df2['payment'] = np.log(df2['payment'])
-    years = range(2004, 2023)
-    
-    dta1 = [df1[df1['year'] == year]['payment'] for year in years] 
-    dta2 = [df2[df2['year'] == year]['payment'] for year in years] 
-
-    fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize= (12,8))
-    ax1.boxplot(dta1, vert=True, labels=years) 
-    ax2.boxplot(dta2, vert=True, labels=years)
-    ax1.yaxis.grid(True) 
-    ax2.yaxis.grid(True) 
-    title = "FOIA vs Public Data"
-    # fig.set(title = title,
-    #        xlabel='Year', 
-    #        ylabel='Payment ($)')
-    fig.tight_layout() 
-    # fname =  f"{county}-{state}_boxplot.png"
-    return fig, (ax1, ax2)
+    df = df.compute()
+    df.sort_index(inplace=True)
+    fname = f'{source}_summary_table.tex'    
+    return df.to_latex(
+        float_format=lambda x: "\$ {:,.2f}".format(x),
+        caption = f"Summary Stats from {source} data",
+        position = 'H'
+    ), fname
 
 
 def program_year_mean_pmt():
-    foia_data = load_data(source="FOIA")
-    public_data = load_data(source="Public")
-
-    foia_data = foia_data.categorize(columns='year')
-    public_data = public_data.categorize(columns='year')
-
-    output_foia = foia_data.pivot_table(index='programName', columns='year', values='payment')
-    output_public = public_data.pivot_table(index='programName', columns='year', values='payment')
-    output_foia = output_foia.fillna(0).compute()
-    output_public = output_public.fillna(0).compute()
-
+    foia_data = load_data(source="FOIA", groupby=['programCode', 'year'])
+    public_data = load_data(source="Public", groupby=['programCode', 'year'])
+    data = public_data.merge(foia_data, how='outer', on=['programCode', 'year'])
+    data = data.compute()
+    data.fillna(0, inplace=True)
+    data['diff'] = data['payment_x'] - data['payment_y']
+    data.drop(columns=['payment_x', 'payment_y'], inplace=True)
+    data['programCode'] = data['programCode'].str.replace('&', 'and')
+    data = data.pivot(columns='year', index='programCode', values='diff')
+    data.fillna(0, inplace=True)
     fname = "program_year_mean_diff.tex"
-    return (output_public - output_foia).to_latex(
-        float_format=lambda x: "\$ {:,.2f}".format(x),
-        longtable = True
+    return data.to_latex(
+        float_format=lambda x: "\$ {:,.0f}".format(x/1000000),
+        longtable = True,
+        label = "progYearDiffTable",
+        caption = "Public minus FOIA in Millions of Dollars by Program Code"
     ), fname
 
 
 def state_year_mean_pmt():
-    foia_data = load_data(source="FOIA")
-    public_data = load_data(source="Public")
-
-    foia_data = foia_data.categorize(columns='year')
-    public_data = public_data.categorize(columns='year')
-
-    output_foia = foia_data.pivot_table(index='stateabbr', columns='year', values='payment')
-    output_public = public_data.pivot_table(index='stateabbr', columns='year', values='payment')
-    output_foia = output_foia.fillna(0).compute()
-    output_public = output_public.fillna(0).compute()
-
+    foia_data = load_data(source="FOIA", groupby=['stateabbr', 'year'])
+    public_data = load_data(source="Public", groupby=['stateabbr', 'year'])
+    data = public_data.merge(foia_data, how='outer', on=['stateabbr', 'year'])
+    data = data.compute()
+    data.fillna(0, inplace=True)
+    data['diff'] = data['payment_x'] - data['payment_y']
+    data.drop(columns=['payment_x', 'payment_y'], inplace=True)
+    data = data.pivot(columns='year', index='stateabbr', values='diff')
+    data.fillna(0, inplace=True)
     fname = "state_year_mean_diff.tex"
-    return (output_public - output_foia).to_latex(
-        float_format=lambda x: "\$ {:,.2f}".format(x), 
-        longtable = True
+    return data.to_latex(
+        float_format=lambda x: "{:,.0f}".format(x/1000000),
+        longtable = True,
+        label = "stateYearDiffTable",
+        caption = "Public minus FOIA in Millions of Dollars by State"
     ), fname
 
-def payment_distribution_by_year(df: dd.DataFrame, year='2020'):
-    df = df[df['year'] == year]
-    df['month'] = df['paymentDate'].dt.month
-    fig, ax = plt.subplots()
-    ax.bar()
 
+def payment_distribution_by_year(df, year=2020, source='Public'):
+    df = df[df['year'] == year]
+    df = df.compute()
+    df['month'] = df['paymentDate'].dt.month
+    aggdf = df.groupby('month').count()
+    fig, ax = plt.subplots()
+    ax.bar(aggdf.index, aggdf['FIP'])
+    ax.set_title(f"{source} - {year}")
+    fname = f"{source}_data_dist_{year}"
+    return fig, ax, fname
+
+
+def reference_prog_code_name():
+    df = load_data()
+    df = df.groupby(['programCode', 'programName']).count()
+    df = df.compute()
+    df.drop(columns = df.columns, inplace=True)
+    print(df.head())
+    fname = "program_reference.tex"
+    return df.to_latex(
+        longtable=True, 
+        label='progCodeLookup',
+        caption='Program Code / Name Lookup Table'
+    ), fname
 
 if __name__ == '__main__':
-    # sources = ['FOIA', 'Public']
+    sources = ['FOIA', 'Public']
     # for source in sources: 
-    #     df = load_data(source=source)
-    #     df = summary_stats(df)
-    #     df.sort_index(inplace=True)
-    #     tex = df.to_latex()
-    #     fname = f'{source}_summary_table.tex'
+    #     tex, fname = annualized_summary_stats(source)
     #     with open(os.path.join(settings.OUTDIR, 'tables', fname), 'w') as f:
     #         f.write(tex)
-    # df = load_data()
-    tex, fname = program_year_mean_pmt()
+
+    # tex, fname = program_year_mean_pmt()
+    # with open(os.path.join(settings.OUTDIR, 'tables', fname), 'w') as f:
+    #     f.write(tex)
+
+    # tex, fname = state_year_mean_pmt()
+    # with open(os.path.join(settings.OUTDIR, 'tables', fname), 'w') as f:
+    #     f.write(tex)
+
+
+    # plt.switch_backend('agg')
+    # years = range(2004, 2023)
+    # for source in sources:
+    #     df = load_data(source = source)
+    #     for year in years:
+    #         print(f"Producing {source} {year}")
+    #         fig, ax, fname = payment_distribution_by_year(df, year, source)
+    #         plt.savefig(os.path.join(settings.OUTDIR, 'figures', 'annual_source_distribution', fname))
+    #         plt.close()
+
+
+    tex, fname = reference_prog_code_name()
     with open(os.path.join(settings.OUTDIR, 'tables', fname), 'w') as f:
         f.write(tex)
 
-    tex, fname = state_year_mean_pmt()
-    with open(os.path.join(settings.OUTDIR, 'tables', fname), 'w') as f:
-        f.write(tex)
