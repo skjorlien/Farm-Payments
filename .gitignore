@@ -1,6 +1,7 @@
 /.venv
 /venv
 /.vscode
+/output
 /data
 .Rproj.user
 .cfg 

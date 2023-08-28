@@ -5,19 +5,12 @@
 `conda install pandas matplotlib geopandas`
 
 
-
 # To Do:
-- Compare online vs FOIA -- generate side-by-side boxplot figure
 - Streamline visualizations (incl. log boxplot) 
 - Streamline scripts. (debug matplotlib multiprocessing)
 - Look into other papers using this data (see: Environmental Workign Group, Joe Glauber, Barry Goodwin) 
 - California County-Level Cartogram 
 - More Cartograms: # of producers, agricultural product by state. 
-
-
-### Investigate: 
-- With the public data, DC is the top recipient 2010-2021. What program does that represent? Was that program included in the FOIA?
-- Is 2022 complete? check chart of payment dates.
 
 ### Document: 
 - Cleaning Process (and how to incorporate new data) including decisions about data storage and multiprocessing.

@@ -8,26 +8,31 @@ library(urbnmapr)
 
 
 ### Load Geographic Data (Shapefiles)
-# countymap <- read_sf(unzip(here('data','basemaps/us_county.zip'))[4])
-statemap <- read_sf(unzip(here('data','basemaps', 'us_state.zip'))[4])
-map_projection <- st_transform(statemap, crs=3310)
+camap <- read_sf(unzip(here('data','basemaps/us_county.zip'))[4]) %>% 
+  filter(STATEFP == '06')
+
+# camap %>% ggplot()+ geom_sf(aes(fill=ALAND))
+
+# statemap <- read_sf(unzip(here('data','basemaps', 'us_state.zip'))[4])
+map_projection <- st_transform(camap, crs=3310)
+
 
 label_fun <- function(breaks) {
   labels <- breaks / 1000000
   return(labels)
 }
 
-
 make_cartogram <- function(y){
   print(y)
   ## Load Feature Data
-  df <- read_csv(here('data', 'clean', 'year_state_data.csv')) %>% 
-    rename('GEOID' = 'statecode') %>%
-    filter(year == y) %>% 
+  df <- read_csv(here('data', 'clean', 'year_county_data.csv')) %>% 
+    rename('GEOID' = 'FIP') %>%
+    filter(grepl('^06', GEOID) & year == y) %>%
     mutate(customer = ifelse(is.na(customer), 0, customer))
   
   
-  payment_data <- left_join(map_projection, df, by="GEOID")
+  payment_data <- left_join(map_projection, df, by="GEOID") %>% 
+    mutate(customer = ifelse(is.na(customer), 0, customer))
   
   start.time <- Sys.time()
   cart.map <-  cartogram_cont(payment_data, weight="customer", itermax=5)
@@ -39,7 +44,7 @@ make_cartogram <- function(y){
   cart.map %>%
     ggplot() +
     geom_sf(aes(fill=payment)) +
-    coord_sf(xlim=c(-125, -66), ylim = c(25, 53), crs=4326) +
+    # coord_sf(xlim=c(-125, -66), ylim = c(25, 53), crs=4326) +
     scale_fill_gradientn(
       colours = hcl.colors(3, "GnBu", rev = TRUE),
       labels = label_fun,
@@ -57,10 +62,9 @@ make_cartogram <- function(y){
     labs(title = "Cartogram weighted by number of customers",
          subtitle = y)
   
-  fname <- paste0('state_', y, '.png')
+  fname <- paste0('ca_', y, '.png')
   ggsave(here('output', 'maps', 'cartogram', fname))
 }
 
 years <- 2006:2022
 map(years, make_cartogram)
-

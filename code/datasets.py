@@ -65,13 +65,13 @@ def load_data(groupby = [], source='Public', **kwargs):
 if __name__ == "__main__":
     import time 
 
-    df = load_data(source = 'Public')
+    df = load_data(groupby=['FIP', 'stateabbr', 'year'], customer=True)
     df = df.compute()
-    df = df[df['programCode'] == '7610'] 
-    aggdf = df.groupby('stateabbr').count()
-    print(aggdf)
+    print(df[df['stateabbr'] == 'DC'])
+    # df.to_csv(f"{os.getcwd()}/data/clean/year_state_data.csv")
 
     # states = pd.read_csv('./data/raw/state_codes.csv')
     # states['statecode'] = states['statecode'].astype('str').str.zfill(2)
     # df = df.merge(states, how='left', on=['statecode'])
     # print(df.head())
+

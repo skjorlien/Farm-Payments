@@ -3,27 +3,19 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import geopandas as gpd
-import os
-from matplotlib.ticker import FuncFormatter
 import settings 
 from utils import utils 
-import glob
 import dask.dataframe as dd
 
 '''
 All visualizations should take transaction-level dask df with arguments 
-for filtering. 
+for filtering. (some exceptions for data difference viz.)
 
 All visualizations should return fig, ax, fname (file name)
 All tables should return latex, fname
 '''
 
-
-## Settings/Helpers
-milFormatter = FuncFormatter(lambda x, pos: '{:,.0f}'.format(x/1e6) + ' M')
-thouFormatter = FuncFormatter(lambda x, pos: '{:,.0f}'.format(x/1e3) + ' T')
-
-## Annual Payment Totals by Program
+''' Core Figs and Maps'''
 def payment_trend(df: dd.DataFrame, program = 'Annual Totals'):
     aggdf = aggregate(df, groupby=['programCode', 'programName', 'year'])
     AnnualTot = aggregate(df, groupby=['year'])
@@ -42,11 +34,124 @@ def payment_trend(df: dd.DataFrame, program = 'Annual Totals'):
     ax.set_xlim(minyear, maxyear)
     ax.set_ylim(0, np.max(y))
     ax.set_title(f'Annual Payment by Program - {program}')
+    progclean = "".join(i for i in program if i not in "\/:*?<>|&")
 
-    fname = f'plot_annualTrend_{program}.png'
+    fname = f'plot_annualTrend_{progclean}.png'
     return fig, ax, fname
 
 
+def program_boxplot(df: dd.DataFrame, prog = None, log=True):
+    if prog is None: 
+        data = df
+        prog = "All Programs"
+    else: 
+        data = df[df['programName'] == prog]
+
+    years = range(2006, 2022)
+    if log:
+        dta = [data[data['year'] == year]['logpayment'].compute() for year in years]
+    else: 
+        dta = [data[data['year'] == year]['payment'].compute() for year in years]
+
+    # Generate a list of dataseries, one for each year
+    fig, ax = plt.subplots(figsize=(12,8)) 
+    ax.boxplot(dta, vert=True, labels = years)
+    ax.yaxis.grid(True)
+    ylab = "Log Payment ($)" if log else "Payment ($)"
+    ax.set(title = prog,
+        xlabel = 'Year',
+        ylabel = ylab)
+    fig.tight_layout()
+
+    fname = "".join(i for i in prog if i not in "\/:*?<>|") + "_boxplot.png"
+    return fig, ax, fname
+
+
+def county_boxplot(df: dd.DataFrame, FIP = None, log=True): 
+    if FIP is None: 
+        data = df[['year', 'logpayment', 'payment']]
+        state = None
+        county = "All Counties"
+    else:
+        data = df[df['FIP'] == FIP]
+        state = data['state'].compute().iloc[0]
+        county = data['county'].compute().iloc[0]
+        data = data[['year', 'logpayment', 'payment']]
+
+    print('selected this')
+    years = range(2006, 2023)
+    
+    df
+
+    if log:
+        dta = [data[data['year'] == year]['logpayment'].compute() for year in years]
+    else: 
+        dta = [data[data['year'] == year]['payment'].compute() for year in years]
+
+    fig, ax = plt.subplots(figsize= (12,8))
+    ax.boxplot(dta, vert=True, labels=years) 
+    ax.yaxis.grid(True) 
+    title = f"{county}, {state}" if state is not None else f"{county}"
+    ylab = "Log Payment ($)" if log else "Payment ($)"
+    ax.set(title = title,
+           xlabel='Year', 
+           ylabel=ylab)
+    fig.tight_layout() 
+    fname =  f"{county}-{state}_boxplot.png"
+    return fig, ax, fname
+
+
+def us_county_map(df: dd.DataFrame, variable=None, year=2020, **kwargs):
+    df = aggregate(df, groupby=['FIP', 'year'], customer=True)
+    df = df[df['year'] == year]
+    df['concentration'] = df['payment'] / df['customer']
+    if variable in ['payment', 'concentration', 'customer']:
+        df = df[['FIP', variable]] 
+        df = df.compute()
+    else: 
+        raise ValueError('must provide a variable like payment, concentration, or customer') 
+
+    # build configuration
+    config = {
+        'legend': True,
+        'legend_kwds': {
+            'format': utils.get_float_formatter(df[variable].mean())
+        },
+        'missing_kwds': {
+            'color': 'lightgrey',
+            'label': 'No payments'
+        }
+    }
+
+    if kwargs:
+        config = utils.update_settings(config, kwargs)
+
+    # Load Maps
+    county_map = gpd.read_file('data/basemaps/us_county.zip')
+    county_map = county_map[['STATEFP', 'COUNTYFP', 'NAME', 'NAMELSAD', 'geometry']]
+    county_map = county_map.cx[-126:-66, 22:50]
+    county_map['FIP'] = county_map['STATEFP'] + county_map['COUNTYFP']
+
+    state_map = gpd.read_file('data/basemaps/us_state.zip')
+    state_map = state_map.cx[-126:-66, 22:50]
+    
+    # merge a data series 
+    county_map = county_map.merge(df, on='FIP', how='left')
+
+    fname = f"map_cnty_{variable}_{year}.png"
+
+    # Plot it
+    fig, ax = plt.subplots()
+    county_map.plot(ax=ax, 
+                    column=variable,
+                    **config)
+    state_map.boundary.plot(ax=ax, color = 'black', linewidth=1)
+    ax.set_title(f"{variable} {year}")
+    ax.set_axis_off()
+    return fig, ax, fname
+
+
+''' Summary Tables '''
 def top_programs_by_year_table(df: dd.DataFrame, FIP=None, headnum = 3): 
     '''top_programs_by_year_table 
 
@@ -123,165 +228,7 @@ def top_counties_by_year_table(df: dd.DataFrame, headnum = 5):
     ), fname
 
 
-def program_boxplot(df: dd.DataFrame, prog = None, log=True):
-    if prog is None: 
-        data = df
-        prog = "All Programs"
-    else: 
-        data = df[df['programName'] == prog]
-
-    years = range(2006, 2022)
-    if log:
-        dta = [data[data['year'] == year]['logpayment'] for year in years]
-    else: 
-        dta = [data[data['year'] == year]['payment'] for year in years]
-
-    # Generate a list of dataseries, one for each year
-    fig, ax = plt.subplots(figsize=(12,8)) 
-    ax.boxplot(dta, vert=True, labels = years)
-    ax.yaxis.grid(True)
-    ax.set(title = prog,
-        xlabel = 'Year',
-        ylabel = 'Payment ($)')
-    fig.tight_layout()
-
-    fname = "".join(i for i in prog if i not in "\/:*?<>|") + "_boxplot.png"
-    return fig, ax, fname
-
-
-def county_boxplot(df: dd.DataFrame, FIP = None, log=True): 
-    if FIP is None: 
-        data = df 
-        state = None
-        county = "All Counties"
-    else:
-        data = df[df['FIP'] == FIP]
-        state = data['state'].compute().iloc[0]
-        county = data['county'].compute().iloc[0]
-
-    years = range(2006, 2022)
-    
-    if log:
-        dta = [data[data['year'] == year]['logpayment'] for year in years]
-    else: 
-        dta = [data[data['year'] == year]['payment'] for year in years]
-
-    fig, ax = plt.subplots(figsize= (12,8))
-    ax.boxplot(dta, vert=True, labels=years) 
-    ax.yaxis.grid(True) 
-    title = f"{county}, {state}" if state is not None else f"{county}"
-    ax.set(title = title,
-           xlabel='Year', 
-           ylabel='Payment ($)')
-    fig.tight_layout() 
-    fname =  f"{county}-{state}_boxplot.png"
-    return fig, ax, fname
-
-
-''''
-COUNTY-LEVEL Chloropleth
-'''
-def us_county_map(df: dd.DataFrame, legend_fmt = None, variable=None, year=2020, **kwargs):
-    df = aggregate(df, groupby=['FIP', 'year'], customer=True)
-    df = df[df['year'] == year]
-    df['concentration'] = df['payment'] / df['customer']
-    if variable in ['payment', 'concentration', 'customer']:
-        pass 
-    else: 
-        raise ValueError('must provide a variable like payment, concentration, or customer') 
-
-    cols = list(df.columns)
-    vmin = kwargs.get('vmin', None)
-    vmax = kwargs.get('vmax', None)
-
-    # make sure df has two columns: FIP and one more for chloroplething
-    if len(cols) != 2: 
-        raise ValueError('Expected two column data frame with columns [FIP, mapdim]')
-
-    if 'FIP' not in cols:
-        raise ValueError('FIP must be a column')
-    
-    # extract the map dimension
-    fipi = cols.index('FIP')
-    dimi = int(not bool(fipi))
-    mapdim = cols[dimi]
-
-    # Load Maps
-    county_map = gpd.read_file('data/basemaps/us_county.zip')
-    county_map = county_map[['STATEFP', 'COUNTYFP', 'NAME', 'NAMELSAD', 'geometry']]
-    county_map = county_map.cx[-126:-66, 22:50]
-    county_map['FIP'] = county_map['STATEFP'] + county_map['COUNTYFP']
-
-    state_map = gpd.read_file('data/basemaps/us_state.zip')
-    state_map = state_map.cx[-126:-66, 22:50]
-    
-    # merge a data series 
-    county_map = county_map.merge(df, on='FIP', how='left')
-
-    legend = {'format': legend_fmt}
-
-    # Plot it
-    fig, ax = plt.subplots()
-    county_map.plot(ax=ax, 
-                    column = mapdim,
-                    legend = True, 
-                    vmin = vmin, 
-                    vmax = vmax,
-                    legend_kwds=legend,
-                    missing_kwds={
-                    'color': 'lightgrey',
-                    'label': 'No payments'
-                    }
-                    )
-    state_map.boundary.plot(ax=ax, color = 'black', linewidth=1)
-    ax.set_axis_off()
-    return fig, ax,
-
-
-def mapper_wrapper(const_colorbar = False, years = range(2006, 2022), dims = ['payment', 'customer', 'concentration']):
-    formatter = {
-        'payment': milFormatter, 
-        'customer': thouFormatter,
-        'concentration': thouFormatter
-    }
-    df = load_data(groupby=['FIP', 'year'])
-    df['concentration'] = df['payment'] / df['customer']
-    for dim in dims:
-        maxscale = np.max(df[dim])
-        minscale = np.min(df[dim])
-        
-        for year in years:
-            # filter the data to this dimension and year
-            tdf = df[['FIP', dim]][df['year'] == year]
-
-            # prep settings
-            conststr = '_const' if const_colorbar else ''
-            fname = f"map_cnty_{dim}_{year}{conststr}.png"
-            constdict = {'vmin': minscale, 'vmax': maxscale} if const_colorbar else {}
-            lfmt = formatter[dim]
-
-            # get map
-            fig, ax = us_county_map(tdf, legend_fmt = lfmt, **constdict)
-            conststr = ' -- Constant Colorbar' if const_colorbar else ''
-            ax.set_title(f"{dim} -- {year}{conststr}")
-            plt.savefig(os.path.join(settings.OUTDIR, fname))
-            plt.close()
-
-
-def gif_all():
-    '''gif_all _summary_
-    '''
-    scopes = ['concentration', 'payment', 'customer']
-    conststrs = ['_const', '']
-    for scope in scopes:
-        for conststr in conststrs:
-            imgs = glob.glob(f"{settings.OUTDIR}/map_cnty_{scope}_20??{conststr}.png")
-            imgs = sorted(imgs)
-            fname = f"map_GIF_{scope}{conststr}.gif"
-            utils.gifify(imgs, fname)
-
-
-## Data Difference Visualizations
+''' Data Difference Report Visualizations '''
 def annualized_summary_stats(source):
     df = load_data(source = source)
     df = df[['year', 'payment']]
@@ -360,6 +307,7 @@ def reference_prog_code_name():
         caption='Program Code / Name Lookup Table'
     ), fname
 
+
 if __name__ == '__main__':
     sources = ['FOIA', 'Public']
     # for source in sources: 
@@ -387,7 +335,18 @@ if __name__ == '__main__':
     #         plt.close()
 
 
-    tex, fname = reference_prog_code_name()
-    with open(os.path.join(settings.OUTDIR, 'tables', fname), 'w') as f:
-        f.write(tex)
+    # tex, fname = reference_prog_code_name()
+    # with open(os.path.join(settings.OUTDIR, 'tables', fname), 'w') as f:
+    #     f.write(tex)
 
+    # df = load_data()
+    # fig, ax, fname = us_county_map(df, 'concentration', 2019)
+    # plt.show()
+    import time
+    start = time.time()
+    df = load_data()
+    fig, ax, fname = county_boxplot(df, FIP = '01001')
+    end = time.time()
+    
+    print("{:.2f} seconds".format(end-start))
+    plt.show()

@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 if __name__ == '__main__':
     df = load_data()
-    fips = df['FIP'].unique()
+    fips = df['FIP'].unique().compute()
     i = 0
     output = []
     currstate = None
@@ -21,7 +21,7 @@ if __name__ == '__main__':
 
         output.append(f"\subsection*{{{state} - {county} - boxplot}}")
 
-        BOXPLOTPATH = "../output/boxplots/counties"
+        BOXPLOTPATH = "../output/figures/county_boxplots"
         boxplot_fname = f"{county}-{state}_boxplot.png"
         output.append(f"\\begin{{figure}}[h]")
         output.append(f"\centering")
@@ -30,7 +30,7 @@ if __name__ == '__main__':
         output.append("\n")
 
         output.append(f"\subsection*{{{state} - {county} - top programs}}")
-        TABLEPATH = "../output/tables/counties"
+        TABLEPATH = "../output/tables/top_programs_by_county"
         table_fname = f"{county}-{state}_prog-table.tex"
         output.append(f"\input{{{TABLEPATH}/{table_fname}}}")
         output.append(f"\\newpage")
