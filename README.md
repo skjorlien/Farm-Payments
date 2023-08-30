@@ -1,8 +1,5 @@
 # THIS CODEBASE IS UNDER DEVELOPMENT
 
-# To Do:
-- More Cartograms: # of producers, agricultural product by state. 
-
 # File Structure: 
 ```
 ├── Rcode
@@ -34,8 +31,6 @@ Researcher must convert each excel file to CSV using method of choice and ensure
 ## Clean Data
 Run `code/scripts/clean.py` to clean the public raw data (in .csv format), and store a parquet output to `data/clean/parquet-Public`.
 
-TODO: There are extraneous functions in `clean.py` that are used to coerce headers so that the csv files play nice with Dask and Parquet. Incorporate into the cleaning script. 
-
 # Using the Data
 see `code/datasets` for function declarations 
 - `load_data` reads cleaned parquet, with option to pass aggregation groups. Defaults to loading data from `data/clean/parquet-Public` 
@@ -51,3 +46,6 @@ see `code/datasets` for function declarations
 ## Data Cleaning 
 - utilizing dask, read all csvs as one dataframe, clean, format and save parquet (see scripts/clean.py)
 
+# To Do:
+- More Cartograms: # of producers, agricultural product by state. 
+- There are extraneous functions in `clean.py` that are used to coerce headers so that the csv files play nice with Dask and Parquet. Incorporate into the cleaning script. 
