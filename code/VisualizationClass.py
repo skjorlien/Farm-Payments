@@ -11,6 +11,7 @@ import time
 from utils import utils
 import itertools
 import geopandas as gpd
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 ''' Abstract Parent Class '''
 class AbstractViz:
@@ -32,7 +33,10 @@ class AbstractViz:
         return df
 
     def test(self, **kwargs):
-        argmap = self._generate_argmap(**kwargs)
+        if kwargs:
+            argmap = [kwargs] 
+        else:
+            argmap = self._generate_argmap(**kwargs)
         fname = self.save(**argmap[0])
         print(f"args: {argmap[0]}, fname: {fname}, numargs: {len(argmap)}, path: {self.path}")
 
@@ -379,6 +383,11 @@ class USCountyMap(Map):
         df = df[['FIP', variable]] 
         df = df.compute()
 
+        titles = {
+            'payment': "Farm Payments ($)", 
+            'customer': "# of Payment Recipients",
+            'concentration': "$ per Recipient"
+        }
 
         config = {
             'legend': True,
@@ -402,11 +411,14 @@ class USCountyMap(Map):
 
         # Plot it
         fig, ax = plt.subplots()
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes('right', size='5%', pad=0.05)
         county_map.plot(ax=ax, 
+                        cax=cax,
                         column=variable,
                         **config)
         self.state_map.boundary.plot(ax=ax, color = 'black', linewidth=1)
-        ax.set_title(f"{variable} {year}")
+        ax.set_title(f"County-Level {titles[variable]} - {year}")
         ax.set_axis_off()
 
         return fig, ax, fname
@@ -538,5 +550,6 @@ class ProgramReference(Table):
 
 
 if __name__ == '__main__':
-    obj = ProgramReference()
-    obj.test()
+    obj = USCountyMap(load_data())
+    args = {'year': 2019, 'variable': 'payment'}
+    obj.test(**args)
