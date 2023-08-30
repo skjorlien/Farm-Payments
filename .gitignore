@@ -1,7 +1,10 @@
 /.venv
 /venv
 /.vscode
-/data
+/data/clean
+/data/raw/FOIA
+/data/raw/Public
 .Rproj.user
 .cfg 
 .exe
+/code/archive
