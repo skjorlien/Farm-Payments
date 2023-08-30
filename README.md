@@ -13,11 +13,10 @@
 │   ├──   maps
 │   ├──   tables
 ├── writing
-├── data (not included in Github Repo. See 'Data' section Below)
+├── data 
 │   ├── basemaps
-│   ├── clean
-│   └── raw
-│   │   ├── **/*.css
+│   ├── raw
+│   └── clean (not included in Github Repo. See 'Data' section Below)
 ```
 
 # Data
