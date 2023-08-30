@@ -296,6 +296,7 @@ def payment_distribution_by_year(df, year=2020, source='Public'):
 
 def reference_prog_code_name():
     df = load_data()
+    df = df.sort_values(by = 'programCode')
     df = df.groupby(['programCode', 'programName']).count()
     df = df.compute()
     df.drop(columns = df.columns, inplace=True)

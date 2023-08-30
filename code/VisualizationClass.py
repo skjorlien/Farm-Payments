@@ -17,6 +17,8 @@ class AbstractViz:
     def __init__(self, df: dd.DataFrame, path):
         self.df = self._process_data(df)
         self.path = os.path.join(settings.OUTDIR, path)
+        if not os.path.exists(self.path):
+            os.makedirs(self.path)
 
     def _clean_fname(self, fname):
         return "".join(i for i in fname if i not in "\/:*?<>|&")
@@ -42,6 +44,7 @@ class AbstractViz:
 
     def generate_all(self, **kwargs):
         argmap = self._generate_argmap(**kwargs)
+        print(argmap)
         start = time.time()
         try: 
             with ProcessPoolExecutor() as executor: 
@@ -339,41 +342,6 @@ class TopCountyTable(Table):
         ), fname
 
 
-class SummaryStats(Table):
-    def __init__(self, df, path=None):
-        super().__init__(df, path)
-
-    def _generate_argmap(self):
-        argmap = {'headnum': 5}
-        return argmap
-
-    def visualize(self, **kwargs):
-        if 'headnum' in kwargs:
-            headnum = kwargs['headnum']
-        else:
-            headnum = 5
-
-        aggdf = aggregate(self.df, groupby = ['year', 'FIP'])
-        cnty_state_crswlk = self.df.drop_duplicates(subset=['FIP'])[['FIP', 'county', 'state']]
-        cnty_state_crswlk = cnty_state_crswlk.compute()
-        cnty_state_crswlk['cntyState'] = cnty_state_crswlk.apply(lambda x: f"{x['county']}, {x['state']}", axis=1)
-        cnty_state_crswlk.drop(columns=['county','state'], inplace=True)
-        
-        summarytable = aggdf.groupby(['year']).apply(lambda x: x.nlargest(headnum, 'payment'))
-        summarytable = summarytable.compute()
-        summarytable = summarytable.merge(cnty_state_crswlk, how='left')
-        summarytable.set_index('year', inplace=True)
-        summarytable.drop(columns=['FIP'], inplace=True)
-        summarytable.rename(columns = {'cntyState': 'County'}, inplace=True)
-        summarytable.set_index('County', append=True, inplace=True)
-
-        fname = "top_counties_table.tex"
-
-        return summarytable.to_latex(
-            float_format=lambda x: "\$ {:,.2f} M".format(x/1000000)
-        ), fname
-
-
 class USCountyMap(Map):
     def __init__(self, df):
         self.daterange = settings.DATERANGE
@@ -444,12 +412,135 @@ class USCountyMap(Map):
         return fig, ax, fname
 
 
+class SummaryStats(Table):
+    def __init__(self, df, path=None):
+        super().__init__(df, path)
+
+    def _process_data(self, df):
+        df = df[['year', 'payment']]
+        df = df.groupby(['year']).agg(['mean', 'max', 'sum', 'std', 'count'])
+        return df
+
+    def visualize(self, **kwargs):
+        if 'source' in kwargs:
+            source = kwargs['source']
+        else:
+            raise KeyError('you must provide a source name in kwargs.')
+
+        df = self.df.compute()
+        df.sort_index(inplace=True)
+        fname = f'{source}_summary_table.tex'    
+        return df.to_latex(
+            float_format=lambda x: "\$ {:,.2f}".format(x),
+            caption = f"Summary Stats from {source} data",
+            position = 'H'
+        ), fname
+
+
+class PaymentDistribution(Figure):
+    def __init__(self, source, path=None):
+        df = load_data(source = source)
+        self.daterange = settings.DATERANGE
+        self.source = source
+        super().__init__(df, 'payment_distributions')
+
+    def _generate_argmap(self, **kwargs):
+        argmap = []
+        for y in self.daterange:
+            args = {}
+            args['source'] = self.source
+            args['year'] = y 
+            argmap.append(args)
+        return argmap
+
+    def _process_data(self, df):
+        df['month'] = df['paymentDate'].dt.month
+        return df
+
+    def visualize(self, **kwargs):
+        year = kwargs['year']
+        source = kwargs['source']
+        df = self.df[self.df['year'] == year].compute()
+        # df['month'] = df['paymentDate'].dt.month 
+        aggdf = df.groupby('month').count()
+        fig, ax = plt.subplots()
+        ax.bar(aggdf.index, aggdf['FIP'])
+        ax.set_title(f"{source} - {year}")
+        fname = f"{source}_data_dist_{year}"
+        return fig, ax, fname
+
+
+class ProgramYearPMTDiff(Table): 
+    def __init__(self, path=None):
+        foia_data = load_data(source="FOIA", groupby=['programCode', 'year'])
+        public_data = load_data(source="Public", groupby=['programCode', 'year'])
+        df = public_data.merge(foia_data, how='outer', on=['programCode', 'year'])
+        super().__init__(df, path)
+
+    def visualize(self, **kwargs):
+        df = self.df.compute()
+        df.fillna(0, inplace = True)
+        df['diff'] = df['payment_x'] - df['payment_y']
+        df.drop(columns=['payment_x', 'payment_y'], inplace=True)
+        df['programCode'] = df['programCode'].str.replace('&', 'and')
+        df = df.pivot(columns='year', index='programCode', values='diff')
+        df.fillna(0, inplace=True)
+        fname = "program_year_mean_diff.tex"
+        return df.to_latex(
+            float_format=lambda x: "\$ {:,.0f}".format(x/1000000),
+            longtable = True,
+            label = "progYearDiffTable",
+            caption = "Public minus FOIA in Millions of Dollars by Program Code"
+        ), fname
+        
+
+class StateYearPMTDiff(Table): 
+    def __init__(self, path=None):
+        foia_data = load_data(source="FOIA", groupby=['stateabbr', 'year'])
+        public_data = load_data(source="Public", groupby=['stateabbr', 'year'])
+        df = public_data.merge(foia_data, how='outer', on=['stateabbr', 'year'])
+        super().__init__(df, path)
+
+    def visualize(self, **kwargs):
+        df = self.df.compute()
+        df.fillna(0, inplace = True)
+        df['diff'] = df['payment_x'] - df['payment_y']
+        df.drop(columns=['payment_x', 'payment_y'], inplace=True)
+        df = df.pivot(columns='year', index='stateabbr', values='diff')
+        df.fillna(0, inplace=True)
+        fname = "state_year_mean_diff.tex"
+        return df.to_latex(
+            float_format=lambda x: "{:,.0f}".format(x/1000000),
+            longtable = True,
+            label = "stateYearDiffTable",
+            caption = "Public minus FOIA in Millions of Dollars by State"
+        ), fname
+
+
+class ProgramReference(Table):
+    def __init__(self, path=None):
+        df = load_data('Public')
+        super().__init__(df, path)
+
+    def visualize(self, **kwargs):
+        df = self.df.sort_values(by = 'programCode')
+        df = df.groupby(['programCode', 'programName']).count()
+        df = df.compute()
+        df.drop(columns = df.columns, inplace=True)
+        fname = "program_reference.tex"
+        return df.to_latex(
+            longtable=True, 
+            label='progCodeLookup',
+            caption='Program Code / Name Lookup Table'
+        ), fname
+
+
 if __name__ == '__main__':
-    # obj = TopStateTable(load_data())
-    # obj.test()
-    # 46.5
-    obj = USCountyMap(load_data())
-    obj.generate_all()
-    # obj = TopStateTable(load_data())
-    # obj.test()
-    
+    obj = ProgramYearPMTDiff()
+    obj.test()
+
+    obj = StateYearPMTDiff()
+    obj.test()
+
+    obj = ProgramReference()
+    obj.test()

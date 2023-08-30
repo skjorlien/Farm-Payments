@@ -48,13 +48,10 @@ def aggregate(df, groupby = [], payment=True, customer = False):
 
 # load data and aggregate (if 'groupby' is passed as a kwarg)
 def load_data(groupby = [], source='Public', **kwargs):
-    '''load_data is for playing around with different data loading techniques without messing up other parts of my code.
-
-    Returns:
-        dask (or pandas) DataFrame: Transaction level data. Although it aggregates by 'level' if passed as kwarg
     '''
-
-    # file = open(settings.CLEANDATA, 'rb')
+    Returns:
+        dask DataFrame: Transaction level data. Although it aggregates by 'level' if passed as kwarg
+    '''
     path = settings.PARQUET_FOIA if source=='FOIA' else settings.PARQUET_Public
 
     df = dd.read_parquet(f"{path}")
@@ -62,16 +59,11 @@ def load_data(groupby = [], source='Public', **kwargs):
     df = aggregate(df, groupby=groupby, **kwargs)
     return df
 
+
 if __name__ == "__main__":
     import time 
 
     df = load_data(groupby=['FIP', 'stateabbr', 'year'], customer=True)
     df = df.compute()
     print(df[df['stateabbr'] == 'DC'])
-    # df.to_csv(f"{os.getcwd()}/data/clean/year_state_data.csv")
-
-    # states = pd.read_csv('./data/raw/state_codes.csv')
-    # states['statecode'] = states['statecode'].astype('str').str.zfill(2)
-    # df = df.merge(states, how='left', on=['statecode'])
-    # print(df.head())
 

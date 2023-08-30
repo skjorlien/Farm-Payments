@@ -103,7 +103,6 @@ def visualize_header_discrepancies():
     outdf = pd.DataFrame.from_dict(out, orient='index')
     outdf.to_csv(f'{datapath}/header_analysis.csv')    
 
-    # TODO: just give a simple output that says whether or not there are any remaining discrepancies.
     return
 
 
