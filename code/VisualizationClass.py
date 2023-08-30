@@ -95,7 +95,7 @@ class Map(AbstractViz):
 
     def save(self, **kwargs):
         fig, ax, fname = self.visualize(**kwargs)
-        plt.savefig(os.path.join(self.path, fname))
+        plt.savefig(os.path.join(self.path, fname), dpi=300)
         plt.close()
         return fname
 

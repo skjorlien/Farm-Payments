@@ -2,7 +2,7 @@ if (!("pacman" %in% rownames(utils::installed.packages()))) {
   utils::install.packages("pacman")
 }
 library(pacman)
-p_load(dplyr, magrittr, knitr, ggplot2, stargazer, beepr, devtools, tidyverse, rlang, arrow, here, cartogram, maptools, sf)
+p_load(dplyr, magrittr, knitr, ggplot2, stargazer, grid, gridExtra, beepr, devtools, tidyverse, rlang, arrow, here, cartogram, maptools, sf)
 devtools::install_github("UrbanInstitute/urbnmapr")
 library(urbnmapr)
 
@@ -22,35 +22,40 @@ label_fun <- function(breaks) {
   return(labels)
 }
 
-make_cartogram <- function(y){
-  print(y)
-  ## Load Feature Data
+generate_cart_data <- function(y) {
+  
   df <- read_csv(here('data', 'clean', 'year_county_data.csv')) %>% 
     rename('GEOID' = 'FIP') %>%
     filter(grepl('^06', GEOID) & year == y) %>%
     mutate(customer = ifelse(is.na(customer), 0, customer))
-  
+    
   
   payment_data <- left_join(map_projection, df, by="GEOID") %>% 
     mutate(customer = ifelse(is.na(customer), 0, customer))
+    
   
   start.time <- Sys.time()
-  cart.map <-  cartogram_cont(payment_data, weight="customer", itermax=5)
+  cart.map <-  cartogram_cont(payment_data, weight="customer", itermax=15)
   end.time <- Sys.time()
   print('cartogram timer:')
   print(end.time - start.time)
+  cart.map
+}
+
+years = 2017:2019
+cart_data = map(years, generate_cart_data)
+
+generate_map <- function(y, cart_data){
   
-  
-  cart.map %>%
-    ggplot() +
-    geom_sf(aes(fill=payment)) +
-    # coord_sf(xlim=c(-125, -66), ylim = c(25, 53), crs=4326) +
+  ggplot() +
+    geom_sf(data = cart_data, aes(fill=payment)) + 
+    labs(title = y) +
     scale_fill_gradientn(
       colours = hcl.colors(3, "GnBu", rev = TRUE),
       labels = label_fun,
-      n.breaks = 15,
+      n.breaks = 10,
       guide = guide_colorsteps(
-        barwidth = 20,
+        barwidth = 10,
         barheight = 0.5,
         title = "million ($)",
         title.position = "right",
@@ -58,13 +63,16 @@ make_cartogram <- function(y){
     theme_void() +
     theme(legend.position = 'top',
           legend.text = element_text(angle = 45, 
-                                     margin = margin(t=7))) +
-    labs(title = "Cartogram - Counties sized by number of program participants",
-         subtitle = y)
-  
-  fname <- paste0('ca_', y, '.png')
-  ggsave(here('output', 'maps', 'cartogram', fname))
+                                     margin = margin(t=7)),
+          plot.margin=(margin(0,0,0,0)))
 }
 
-years <- 2006:2022
-map(years, make_cartogram)
+
+map.1 <- generate_map(years[[1]], cart_data[[1]])
+map.2 <- generate_map(years[[2]], cart_data[[2]])
+map.3 <- generate_map(years[[3]], cart_data[[3]])
+
+g <- grid.arrange(map.1, map.2, map.3, ncol=3, nrow=1, 
+             top = textGrob("Sized by # of Participants, Fill by Payment ($)",gp=gpar(fontsize=15,fontface='bold')))
+g
+ggsave(here('output', 'maps', 'cartogram', 'poster.png'), plot=g)
