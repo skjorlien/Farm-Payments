@@ -63,7 +63,10 @@ def load_data(groupby = [], source='Public', **kwargs):
 if __name__ == "__main__":
     import time 
 
-    df = load_data(groupby=['FIP', 'stateabbr', 'year'], customer=True)
+    df = load_data()
+    df = df[['programCode', 'programName', 'FIP']]
+    df = df.groupby(['programCode', 'programName']).count()
     df = df.compute()
-    print(df[df['stateabbr'] == 'DC'])
+    df.drop(columns = df.columns, inplace=True)
+    print(df.head())
 

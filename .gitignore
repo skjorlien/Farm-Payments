@@ -1,3 +1,6 @@
+__pycache__/
+
+
 /.venv
 /venv
 /.vscode
@@ -8,3 +11,13 @@
 .cfg 
 .exe
 /code/archive
+
+.Rhistory
+
+
+*.aux 
+*.fdb*
+*.fls
+*.log
+*.synctex*
+*.out

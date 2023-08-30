@@ -519,14 +519,16 @@ class StateYearPMTDiff(Table):
 
 class ProgramReference(Table):
     def __init__(self, path=None):
-        df = load_data('Public')
+        df = load_data()
         super().__init__(df, path)
 
     def visualize(self, **kwargs):
-        df = self.df.sort_values(by = 'programCode')
+        df = self.df[['programCode', 'programName', 'FIP']]
+        df['programName'] = df['programName'].str.replace('&', 'and')
         df = df.groupby(['programCode', 'programName']).count()
         df = df.compute()
         df.drop(columns = df.columns, inplace=True)
+        df.sort_index(level=[0, 1], inplace=True)
         fname = "program_reference.tex"
         return df.to_latex(
             longtable=True, 
@@ -536,11 +538,5 @@ class ProgramReference(Table):
 
 
 if __name__ == '__main__':
-    obj = ProgramYearPMTDiff()
-    obj.test()
-
-    obj = StateYearPMTDiff()
-    obj.test()
-
     obj = ProgramReference()
     obj.test()
