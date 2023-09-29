@@ -22,7 +22,7 @@ label_fun <- function(breaks) {
   return(labels)
 }
 
-make_cartogram <- function(y){
+make_cartogram <- function(y, max=NULL){
   print(y)
   ## Load Feature Data
   df <- read_csv(here('data', 'clean', 'year_county_data.csv')) %>% 
@@ -40,7 +40,6 @@ make_cartogram <- function(y){
   print('cartogram timer:')
   print(end.time - start.time)
   
-  
   cart.map %>%
     ggplot() +
     geom_sf(aes(fill=payment)) +
@@ -49,6 +48,7 @@ make_cartogram <- function(y){
       colours = hcl.colors(3, "GnBu", rev = TRUE),
       labels = label_fun,
       n.breaks = 15,
+      limits = c(0, ),
       guide = guide_colorsteps(
         barwidth = 20,
         barheight = 0.5,
