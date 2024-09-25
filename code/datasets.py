@@ -62,11 +62,31 @@ def load_data(groupby = [], source='Public', **kwargs):
 
 if __name__ == "__main__":
     import time 
+    import matplotlib.pyplot as plt
 
     df = load_data()
-    df = df[['programCode', 'programName', 'FIP']]
-    df = df.groupby(['programCode', 'programName']).count()
-    df = df.compute()
-    df.drop(columns = df.columns, inplace=True)
-    print(df.head())
+    print(df.columns)
+    programs = []
+    
+    for prog in list(df['programName'].unique()): 
+        if prog is None:
+            continue
+        if prog.find('LIVESTOCK') >= 0:
+            programs.append(prog)
+    print(programs)
+    lips = ['05 - 07 LIVESTOCK INDEMNITY PROGRAM', 'LIVESTOCK INDEMNITY PROGRAM', 'LIVESTOCK INDEMINITY PAYMENTS PROGRAM']
+
+    df = df.loc[df['programName'].isin(lips), ['programName', 'year', 'payment']]
+    df = df.groupby(['year']).agg({'payment': 'sum'}).compute().reset_index()
+
+
+    # # take the two LIPs 
+    fig, ax = plt.subplots()
+    ax.bar(df['year'], df['payment']/1e6)
+    # df.plot.bar(x='year', y = ['LIVESTOCK INDEMINITY PAYMENTS PROGRAM', 'LIVESTOCK INDEMNITY PROGRAM'], ax=ax)
+    ax.set_ylabel('Millions $')
+    ax.set_xlabel('Year')
+    ax.set_title('Livestock Indemnity Program')
+    plt.show()
+
 

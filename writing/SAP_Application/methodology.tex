@@ -1,0 +1,53 @@
+% Created 2024-07-03 Wed 10:31
+% Intended LaTeX compiler: pdflatex
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{capt-of}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{setspace}
+\linespread{1.5}
+\date{\today}
+\title{Methodology}
+\hypersetup{
+ pdfauthor={},
+ pdftitle={Methodology},
+ pdfkeywords={},
+ pdfsubject={},
+ pdfcreator={Emacs 29.3 (Org mode 9.8)}, 
+ pdflang={English}}
+\begin{document}
+
+\maketitle
+\section{Estimate Log Marginal Utility of Expenditure}
+\label{sec:org51ae6c7}
+\begin{itemize}
+\item For every farmer \(i\) in year \(t\), we compute \(\log \lambda_{it}\), where \(\lambda_{it}\) is the marginal utility of expenditures.
+\item Define \(Y\) as the self-reported expenditure categories from the ARMS survey, and let \(Z\) be a measure of household composition (for instance, log household size)
+\item Use python package CFEDemands to estimate \(\log \lambda_{it}\)
+\end{itemize}
+\section{Calculate \(Cov(\hat{\log \lambda_{it}}), \tau_{it})\) with OLS}
+\label{sec:orgcfd052b}
+\begin{itemize}
+\item Let \(\tau_{it}\) be a vector of government program payments received by farmer \(i\) in year \(t\). That is, \(\tau\) is a matrix with with columns representing self-reported payemnts for the following programs: Price Loss Coverage, Market Facilitation Program, Agriculture Risk Coverage Program, Federal Crop Insurance, Direct Payments, etc.
+\item Construct \(X_{it}\) as a vector of controls including other sources of income (both on- and off-farm income sources).
+\item Estimate \(\beta: \hat{\log \lambda_{it}} = \beta \tau_{it} + \gamma X_{it} + \varepsilon_{it}\)
+\end{itemize}
+\section{Calculate \(Cov(\hat{\log \lambda_{it}}), \tau_{it})\) with 2SLS}
+\label{sec:org1ccfcf7}
+\begin{itemize}
+\item Using external data on government payments, construct matrix of mean administrative payments by zip code \(z\) and by year \(t\).
+\item With zip code-level cross walk on the ARMS data, merge administrative payments data so each individual has a vector of mean administrative payments at the zip code level.
+\item Define \(\tau_{it}\) and \(X_{it}\) the same as in OLS step.
+\item Define Z\textsubscript{it} as the matrix of zip code administrative payments.
+\item Perform 2SLS using \(Z\) to instrument for \(\tau\)
+\end{itemize}
+\end{document}

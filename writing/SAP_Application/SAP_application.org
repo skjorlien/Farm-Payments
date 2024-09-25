@@ -1,0 +1,64 @@
+#+title: SAP Application
+#+LATEX_HEADER: \usepackage{amsmath}
+#+LATEX_HEADER: \usepackage{setspace}
+#+LATEX_HEADER: \linespread{1.5}
+#+OPTIONS: toc:nil
+
+* Timeline
+** Proposed timeline
+#+ATTR_LATEX: :header-rows 1 :width \textwidth :align p{0.5\textwidth} c c c
+| Task                                                                                               | Year 1 | Year 2 | Year 3 |
+|----------------------------------------------------------------------------------------------------+--------+--------+--------|
+| Renew enclave access                                                                               | X      |        |        |
+|----------------------------------------------------------------------------------------------------+--------+--------+--------|
+| Continue data cleaning                                                                             | X      |        |        |
+|----------------------------------------------------------------------------------------------------+--------+--------+--------|
+| Make CFEDemands python package backward compatible with Python 3.7 (if enclave issue not resolved) | X      |        |        |
+|----------------------------------------------------------------------------------------------------+--------+--------+--------|
+| Robustness checks                                                                                  |        | X      |        |
+|----------------------------------------------------------------------------------------------------+--------+--------+--------|
+| Request outputs from Enclave 1                                                                     |        | X      |        |
+|----------------------------------------------------------------------------------------------------+--------+--------+--------|
+| Draft Paper                                                                                        |        | X      |        |
+|----------------------------------------------------------------------------------------------------+--------+--------+--------|
+| Present at Conferences                                                                             |        | X      | X      |
+|----------------------------------------------------------------------------------------------------+--------+--------+--------|
+| Final Analysis                                                                                     |        |        | X      |
+|----------------------------------------------------------------------------------------------------+--------+--------+--------|
+| Final Draft                                                                                        |        |        | X      |
+|----------------------------------------------------------------------------------------------------+--------+--------+--------|
+| Request output from Enclave 2)                                                                     |        |        | X      |
+|----------------------------------------------------------------------------------------------------+--------+--------+--------|
+| Submit to journals                                                                                 |        |        | X      |
+|----------------------------------------------------------------------------------------------------+--------+--------+--------|
+* Methodology
+#+OPTIONS: toc:nil
+** Estimate Log Marginal Utility of Expenditure
+- For every farmer $i$ in year $t$, we compute $\log \lambda_{it}$, where $\lambda_{it}$ is the marginal utility of expenditures.
+- Define $Y$ as the self-reported expenditure categories from the ARMS survey, and let $Z$ be a measure of household composition (for instance, log household size)
+- Use python package CFEDemands to estimate $\log \lambda_{it}$
+** Calculate $Cov(\hat{\log \lambda_{it}}), \tau_{it})$ with OLS
+- Let $\tau_{it}$ be a vector of government program payments received by farmer $i$ in year $t$. That is, $\tau$ is a matrix with with columns representing self-reported payemnts for the following programs: Price Loss Coverage, Market Facilitation Program, Agriculture Risk Coverage Program, Federal Crop Insurance, Direct Payments, etc.
+- Construct $X_{it}$ as a vector of controls including other sources of income (both on- and off-farm income sources).
+- Estimate $\beta: \hat{\log \lambda_{it}} = \beta \tau_{it} + \gamma X_{it} + \varepsilon_{it}$
+** Calculate $Cov(\hat{\log \lambda_{it}}), \tau_{it})$ with 2SLS
+- Using external data on government payments, construct matrix of mean administrative payments by zip code $z$ and by year $t$.
+- With zip code-level cross walk on the ARMS data, merge administrative payments data so each individual has a vector of mean administrative payments at the zip code level.
+- Define $\tau_{it}$ and $X_{it}$ the same as in OLS step.
+- Define Z_{it} as the matrix of zip code administrative payments.
+- Perform 2SLS using $Z$ to instrument for $\tau$
+
+* List of References
+#+OPTIONS: toc:nil
+Carter, C. A., Dong, J., & Steinbach, S. (2020). 2018 Trade War, Mitigation Payments, and California Agriculture.
+
+Jones, C. A., Milkove, D., & Paszkiewicz, L. (2010). Farm Household Well-Being: Comparing Consumption- and Income-Based Measures. SSRN Electronic Journal. https://doi.org/10.2139/ssrn.1557192
+
+Ligon, E. (2020). Estimating Household Welfare from Disaggregate Expenditures. https://escholarship.org/uc/item/2cg4q0b9
+
+Roberts, M. J., Key, N., & O’Donoghue, E. (2006). Estimating the Extent of Moral Hazard in Crop Insurance Using Administrative Data. Review of Agricultural Economics, 28(3), 381–390.
+
+* Requested Output
+#+OPTIONS: toc:nil
+** Output
+We will be requesting output from our main regression specifications. In addition, we will produce summary statistics of household expenditures, income sources, and government payments. We are aware of the export requirements to protect individual farmer information and privacy, and will not be requesting any export that violates the the policy.

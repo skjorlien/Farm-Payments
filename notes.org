@@ -1,0 +1,158 @@
+#+title: Project Notes
+#+LATEX_HEADER: \usepackage{amsfonts}
+
+
+#+name: imports
+#+begin_src python :results output
+  import pandas as pd
+  import os
+  export_path = os.path.join(os.getcwd(), "ADRF EXPORTS", "9_18")
+  files = [os.path.join(export_path, file) for file in os.listdir(export_path)]
+
+  def clean_table(table):
+      # drop na
+      table.fillna("", inplace=True)
+      # rename top header
+      cols = [""] + list(table.columns)[1:]
+      cols = [col.split(".")[0] for col in cols]
+      table.columns = cols
+      #drop "R-squared" and "R-squared Adj."
+      filt = table.iloc[:, 0].isin(['R-squared', 'R-squared Adj.'])
+      table = table[~filt]
+      return table
+
+  income_on_gov = clean_table(pd.read_csv(files[0]))
+  w_on_gov_logs = clean_table(pd.read_csv(files[1]))
+  w_on_income_logs = clean_table(pd.read_csv(files[2]))
+#+end_src
+
+#+RESULTS: imports
+
+* Estimating Impact of Income on Household Welfare
+
+\[
+w_{it} = \beta_{0} + \beta_{1}\mathbf{1}[Y_{it} \geq 0] \cdot \log{Y_{it}} + \beta_{2}\mathbf{1}[Y_{it} \leq 0 ] + \beta_{3} X_{it} + \gamma_{gt} + \varepsilon_{it}
+\]
+
+- $w_{it}$ :: a meaure of welfare in logs derived from CFE demands.
+- $Y_{it} :: a measure of income. We have four different mesures of income.
+- $X_{it}$ :: vector of controls.
+- $\gamma$ :: I consider a range of fixed effects including year t, geography g (NASS Region) and combinations of the two.
+
+  #+begin_src python :noweb yes :results output
+    <<imports>>
+
+    print(w_on_income_logs)
+  #+end_src
+
+  #+RESULTS:
+  #+begin_example
+                   TotHHIncome  ... OffFarmHHIncome OffFarmHHIncome
+  0                         -1  ...              -5              -6
+  1   TotAcresOper              ...       0.0000***       0.0000***
+  2                             ...               0               0
+  3          const  -1.8496***  ...      -0.9710***      -0.9454***
+  4                    -0.0253  ...         -0.0235          -0.031
+  5      logposinc   0.1580***  ...       0.0800***       0.0801***
+  6                    -0.0022  ...          -0.002          -0.002
+  7      negincind   1.8516***  ...       0.8222***       0.8228***
+  8                    -0.0262  ...         -0.0227         -0.0227
+  9              N       86856  ...           86856           86856
+  10   Adjusted R2        0.07  ...            0.04            0.05
+  11            fe              ...    time, region      interacted
+
+  [12 rows x 19 columns]
+  #+end_example
+
+* Estimating the impact of government payments on income
+\[
+I_{i} = \sum_{j=1}^{N} \beta_{j} G_{i}^{j} + \alpha X_{i} + \gamma_{gt} + \varepsilon_{i}
+\]
+- I :: Income in dollars for a given category of income
+- G :: income in dollars from government program $j = 1 \dots N$
+- X :: controsl (just using Total Acres Oper
+- $\gamma_{gt}$ :: year x region interacted fixed effects
+
+#+begin_src python :noweb yes :results output
+  <<imports>>
+
+  print(income_on_gov)
+#+end_src
+
+#+RESULTS:
+#+begin_example
+                   OffFarmHHIncome  ...    TotHHIncome    TotHHIncome
+0                              (1)  ...            (2)            (3)
+1         PROG_Arc           0.054  ...       1.384***       1.442***
+2                          (0.316)  ...        (0.357)        (0.376)
+3    PROG_DCP/ACRE        -0.258**  ...       1.337***       1.740***
+4                          (0.107)  ...        (0.301)        (0.318)
+5   PROG_Insurance         -0.016*  ...       0.561***       0.561***
+6                          (0.008)  ...        (0.095)        (0.094)
+7         PROG_MFP       -0.106***  ...          0.009          0.051
+8                          (0.040)  ...        (0.147)        (0.165)
+9         PROG_PLC          -0.064  ...          0.152          0.196
+10                         (0.115)  ...        (0.220)        (0.224)
+13    TotAcresOper                  ...         6.270*         6.046*
+14                                  ...        (3.241)        (3.307)
+15           const    82092.342***  ...  146360.894***  100513.963***
+16                      (1395.586)  ...     (3290.233)    (14620.947)
+17               N           86856  ...          86856          86856
+18     Adjusted R2            0.00  ...           0.01           0.01
+19              fe                  ...                    interacted
+
+[18 rows x 16 columns]
+#+end_example
+
+* test
+\[
+w_{izt} = \sum_{j}^{N} \beta_{j} \mathbb{I}[G_{izt}^{j} > 0] + \sum_{j}^{N}\gamma_{j} \mathbb{I}[G_{izt}^{j}>0] * \log(G_{izt}^{j}) + \alpha X_{izt} + \delta_{z t} + \varepsilon_{izt}
+\]
+
+- $w_{izt} :: log lambda for individual i in zip code z and year t
+- G :: government program payments in dollars
+- X :: same controls
+- \delta :: zip by time fixed effects
+
+#+begin_src python :noweb yes :results output
+  <<imports>>
+
+  print(w_on_gov_logs)
+#+end_src
+
+#+RESULTS:
+#+begin_example
+                               (1)         (2)         (3)
+2         TotAcresOper               0.0000***   0.0000***
+3                                     (0.0000)    (0.0000)
+4          TotHHIncome               0.0000***   0.0000***
+5                                     (0.0000)    (0.0000)
+6                const  -0.0823***  -0.1104***  -0.1255***
+7                         (0.0028)    (0.0034)    (0.0030)
+8         log_PROG_Arc   0.0706***   0.0621***   0.0216***
+9                         (0.0040)    (0.0040)    (0.0012)
+10   log_PROG_DCP/ACRE   0.0791***   0.0679***   0.0232***
+11                        (0.0038)    (0.0038)    (0.0015)
+12  log_PROG_Insurance   0.0415***   0.0335***   0.0156***
+13                        (0.0048)    (0.0049)    (0.0015)
+14        log_PROG_MFP   0.0701***   0.0635***   0.0259***
+15                        (0.0076)    (0.0076)    (0.0022)
+16        log_PROG_PLC   0.0617***   0.0549***   0.0214***
+17                        (0.0052)    (0.0052)    (0.0016)
+18        pos_PROG_Arc  -0.4985***  -0.4317***  -0.0445***
+19                        (0.0364)    (0.0363)    (0.0091)
+20   pos_PROG_DCP/ACRE  -0.5933***  -0.5035***  -0.0910***
+21                        (0.0337)    (0.0340)    (0.0116)
+22  pos_PROG_Insurance  -0.2880***  -0.2224***     -0.0107
+23                        (0.0478)    (0.0478)    (0.0104)
+24        pos_PROG_MFP  -0.5089***  -0.4452***   -0.0480**
+25                        (0.0787)    (0.0785)    (0.0198)
+26        pos_PROG_PLC  -0.4377***  -0.3884***  -0.0349***
+27                        (0.0490)    (0.0487)    (0.0114)
+28                   N       86856       86856       86856
+29         Adjusted R2        0.03        0.04        0.05
+#+end_example
+
+* Actions
+** TODO Convert Negatives to parenthesiss
+** TODO pretty print, write about em

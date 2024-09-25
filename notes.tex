@@ -1,0 +1,74 @@
+% Created 2024-09-24 Tue 17:30
+% Intended LaTeX compiler: pdflatex
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{capt-of}
+\usepackage{hyperref}
+\usepackage{amsfonts}
+\date{\today}
+\title{Project Notes}
+\hypersetup{
+ pdfauthor={},
+ pdftitle={Project Notes},
+ pdfkeywords={},
+ pdfsubject={},
+ pdfcreator={Emacs 29.3 (Org mode 9.6.15)}, 
+ pdflang={English}}
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\begin{verbatim}
+import pandas as pd
+import os
+export_path = os.path.join(os.getcwd(), "ADRF EXPORTS", "9_18")
+files = [os.path.join(export_path, file) for file in os.listdir(export_path)]
+\end{verbatim}
+
+\section{Estimating Impact of Income on Household Welfare}
+\label{sec:orgdd5831b}
+
+\[
+w_{it} = \beta_{0} + \beta_{1}\mathbf{1}[Y_{it} \geq 0] \cdot \log{Y_{it}} + \beta_{2}\mathbf{1}[Y_{it} \leq 0 ] + \beta_{3} X_{it} + \gamma_{gt} + \varepsilon_{it}
+\]
+
+\begin{description}
+\item[{\(w_{it}\)}] a meaure of welfare in logs derived from CFE demands.
+\item[{\$Y\textsubscript{it}}] a measure of income. We have four different mesures of income.
+\item[{\(X_{it}\)}] vector of controls.
+\item[{\(\gamma_{gt}\)}] Geography by year fixed effects pertaining to NASS Region \(g\)
+
+\begin{verbatim}
+import pandas as pd
+import os
+export_path = os.path.join(os.getcwd(), "ADRF EXPORTS", "9_18")
+files = [os.path.join(export_path, file) for file in os.listdir(export_path)]
+
+def clean_table(table):
+     # drop na
+     table.fillna("", inplace=True)
+     # rename top header
+     cols = [""] + list(table.columns)[1:]
+     cols = [col.split(".")[0] for col in cols]
+     table.columns = cols
+     #drop "R-squared" and "R-squared Adj."
+     filt = table.iloc[:, 0].isin(['R-squared', 'R-squared Adj.'])
+     table = table[~filt]
+     #drop Prog Prefix
+     table.iloc[:, 0] = [val.split("_")[1] if "_" in val else val for val in list(table.iloc[:, 0])]
+     return table
+data = pd.read_csv(files[0])
+data = clean_table(data)
+return data
+\end{verbatim}
+\end{description}
+\end{document}

@@ -1,0 +1,25 @@
+                   IV-2SLS Estimation Summary                   
+Dep. Variable:   ,w               ,  R-squared:         ,-0.0061
+Estimator:       ,IV-2SLS         ,  Adj. R-squared:    ,-0.0062
+No. Observations:,100156          ,  F-statistic:       ,1311.2 
+Date:            ,Wed, Aug 21 2024,  P-value (F-stat)   ,0.0000 
+Time:            ,16:09:37        ,  Distribution:      ,chi2(9)
+Cov. Estimator:  ,robust          ,                     ,       
+                 ,                ,                     ,       
+                          Parameter Estimates                           
+              ,Parameter ,Std. Err., T-stat,P-value, Lower CI , Upper CI
+const         ,-0.1279   ,0.0043   ,-29.764,0.0000 ,-0.1364   ,-0.1195  
+TOTOFI        ,2.274e-07 ,3.581e-08,6.3508 ,0.0000 ,1.572e-07 ,2.976e-07
+FARMHHI       ,6.561e-08 ,1.319e-08,4.9745 ,0.0000 ,3.976e-08 ,9.146e-08
+PROG_Insurance,4.727e-08 ,4.552e-08,1.0384 ,0.2991 ,-4.195e-08,1.365e-07
+TotAcresOper  ,4.815e-06 ,7.457e-07,6.4571 ,0.0000 ,3.353e-06 ,6.277e-06
+FARMBUSI      ,-9.064e-09,8.292e-09,-1.0930,0.2744 ,-2.532e-08,7.189e-09
+PROG_DCP/ACRE ,7.44e-06  ,5.223e-07,14.246 ,0.0000 ,6.416e-06 ,8.464e-06
+PROG_Arc      ,7.747e-06 ,5.622e-07,13.780 ,0.0000 ,6.645e-06 ,8.848e-06
+PROG_PLC      ,5.766e-06 ,6.218e-07,9.2734 ,0.0000 ,4.547e-06 ,6.985e-06
+PROG_MFP      ,5.036e-06 ,4.342e-07,11.599 ,0.0000 ,4.185e-06 ,5.887e-06
+
+Endogenous: PROG_DCP/ACRE, PROG_Arc, PROG_PLC, PROG_MFP
+Instruments: prog_DCP_ACRE, prog_ARC, prog_PLC, prog_MFP
+Robust Covariance (Heteroskedastic)
+Debiased: False
