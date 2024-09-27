@@ -1,158 +1,346 @@
-#+title: Project Notes
+#+title: Valuing Crop Insurance
+#+subtitle: ARMS Export Discussion
+#+options: author:nil toc:nil
 #+LATEX_HEADER: \usepackage{amsfonts}
-
+#+LATEX_HEADER: \usepackage{booktabs}
+#+LATEX_HEADER: \usepackage[margin=1in]{geometry}
 
 #+name: imports
-#+begin_src python :results output
-  import pandas as pd
-  import os
-  export_path = os.path.join(os.getcwd(), "ADRF EXPORTS", "9_18")
-  files = [os.path.join(export_path, file) for file in os.listdir(export_path)]
+#+begin_src python :results none :exports none
+import pandas as pd
+import os
+import numpy as np
+export_path = os.path.join(os.getcwd(), "ADRF EXPORTS", "9_18")
+files = [os.path.join(export_path, file) for file in os.listdir(export_path)]
 
-  def clean_table(table):
-      # drop na
-      table.fillna("", inplace=True)
-      # rename top header
-      cols = [""] + list(table.columns)[1:]
-      cols = [col.split(".")[0] for col in cols]
-      table.columns = cols
-      #drop "R-squared" and "R-squared Adj."
-      filt = table.iloc[:, 0].isin(['R-squared', 'R-squared Adj.'])
-      table = table[~filt]
-      return table
+def clean_table(table):
+    # drop na
+    table.fillna("", inplace=True)
+    # rename top header
+    cols = [""] + list(table.columns)[1:]
+    cols = [col.split(".")[0] for col in cols]
+    table.columns = cols
+    # drop "R-squared" and "R-squared Adj."
+    filt = table.iloc[:, 0].isin(['R-squared', 'R-squared Adj.'])
+    table = table[~filt]
+    return table
 
-  income_on_gov = clean_table(pd.read_csv(files[0]))
-  w_on_gov_logs = clean_table(pd.read_csv(files[1]))
-  w_on_income_logs = clean_table(pd.read_csv(files[2]))
+
+def format_se_row(row):
+    if row.iloc[0] == "":
+        row[1:] = row[1:].replace("", "0")
+        row[1:] = row[1:].astype(float).abs().round(4).astype(str).radd("(").add(")")
+
+    # but I don't want to mess up the top row.
+    if row.name == 0:
+        row[1:] = ["(" + str(val) + ")" for val in range(1, len(row))]
+    return row
+
+
+def df_to_org_table(df):
+    org_table = "| " + " | ".join(df.columns) + " \n"
+    org_table += "|-" + "-+-".join(['-' * len(col) for col in df.columns]) + "-|\n"
+    for _, row in df.iterrows():
+        org_table += "| " + " | ".join(row.astype(str)) + " |\n"
+
+    return org_table
+
+income_on_gov = clean_table(pd.read_csv(files[0]))
+w_on_gov_logs = clean_table(pd.read_csv(files[1]))
+w_on_income_logs = clean_table(pd.read_csv(files[2]))
 #+end_src
+* The Different Measures of Income
+Income is a key variable in each of the specifications below. There are five measures of income: one measure of off-farm income, two measures of income from the farm (with and without government payments), and two measures of total income (off farm plus each of the two farm income measures). Variable names are defined as follows:
+- OffFarmHHIncome :: an aggregate measure of all off-farm household income. This includes wages and salaries from non-farm activities as well as earnings from other farms. Other categories include retirement, interest and dividend payments.
+- FARMHHI :: FARMHHI is the "farm household income" as reported in ARMS. This is calculated from the profit/loss of the farm business times a multiplier that reflects what percentage of the farm's earnings the household is entitled to.
+- TOTHHI :: The sum of FARMHHI + OffFarmHHIncome
+- FarmHHIncome :: This is a measure of income that removes the sources of farm income due to government programs.
+- TotalHHIncome :: An aggregate of OffFarmHHIncome and FarmHHIncome. This represents an aggregate measure of income that is net of government payments
 
-#+RESULTS: imports
 
 * Estimating Impact of Income on Household Welfare
 
 \[
-w_{it} = \beta_{0} + \beta_{1}\mathbf{1}[Y_{it} \geq 0] \cdot \log{Y_{it}} + \beta_{2}\mathbf{1}[Y_{it} \leq 0 ] + \beta_{3} X_{it} + \gamma_{gt} + \varepsilon_{it}
+w_{it} = \beta_{0} + \beta_{1}\mathbf{1}[Y_{it} >  0] \cdot \log{Y_{it}} + \beta_{2}\mathbf{1}[Y_{it} \leq 0 ] + \beta_{3} X_{it} + \gamma_{gt} + \varepsilon_{it}
 \]
 
 - $w_{it}$ :: a meaure of welfare in logs derived from CFE demands.
-- $Y_{it} :: a measure of income. We have four different mesures of income.
-- $X_{it}$ :: vector of controls.
-- $\gamma$ :: I consider a range of fixed effects including year t, geography g (NASS Region) and combinations of the two.
+- $Y_{it}$ :: a measure of income. We have three different mesures of income used here.
+- $X_{it}$ :: vector of controls. This just includes farm size, measured by total acres of operation
+- $\gamma_{it}$ :: I consider a range of fixed effects including year t, geography g (NASS Region) and combinations of the two.
 
-  #+begin_src python :noweb yes :results output
-    <<imports>>
 
-    print(w_on_income_logs)
-  #+end_src
+#+begin_src python :noweb yes :exports none :results raw
+<<imports>>
+output = ""
+for i in range(1, len(income_on_gov.columns), 6):
+    output += df_to_org_table(w_on_income_logs.iloc[:,[0] + list(range(i,i+6))]) + "\n\n"
 
-  #+RESULTS:
-  #+begin_example
-                   TotHHIncome  ... OffFarmHHIncome OffFarmHHIncome
-  0                         -1  ...              -5              -6
-  1   TotAcresOper              ...       0.0000***       0.0000***
-  2                             ...               0               0
-  3          const  -1.8496***  ...      -0.9710***      -0.9454***
-  4                    -0.0253  ...         -0.0235          -0.031
-  5      logposinc   0.1580***  ...       0.0800***       0.0801***
-  6                    -0.0022  ...          -0.002          -0.002
-  7      negincind   1.8516***  ...       0.8222***       0.8228***
-  8                    -0.0262  ...         -0.0227         -0.0227
-  9              N       86856  ...           86856           86856
-  10   Adjusted R2        0.07  ...            0.04            0.05
-  11            fe              ...    time, region      interacted
+return output
+#+end_src
 
-  [12 rows x 19 columns]
-  #+end_example
+
+** Impact of FarmHHIncome on Welfare
+
+|--------------+------------+------------+------------+------------+--------------+------------|
+|              |        (1) |        (2) |        (3) |        (4) |          (5) |        (6) |
+|--------------+------------+------------+------------+------------+--------------+------------|
+| TotAcresOper |            |  0.0000*** |  0.0000*** |  0.0000*** |    0.0000*** |  0.0000*** |
+|              |            |          0 |          0 |          0 |            0 |          0 |
+| const        | -0.9089*** | -0.8716*** | -0.9708*** | -0.8680*** |   -0.9600*** | -0.9246*** |
+|              |    -0.0197 |    -0.0203 |    -0.0208 |    -0.0225 |       -0.023 |    -0.0304 |
+| logposinc    |  0.0818*** |  0.0768*** |  0.0773*** |  0.0761*** |    0.0767*** |  0.0765*** |
+|              |    -0.0018 |    -0.0019 |    -0.0019 |    -0.0019 |      -0.0019 |    -0.0019 |
+| negincind    |  0.8565*** |  0.8061*** |  0.8094*** |  0.8013*** |    0.8044*** |  0.8015*** |
+|              |    -0.0201 |     -0.021 |    -0.0208 |     -0.021 |      -0.0207 |    -0.0208 |
+| N            |      86856 |      86856 |      86856 |      86856 |        86856 |      86856 |
+| Adjusted R2  |       0.03 |       0.03 |       0.04 |       0.04 |         0.04 |       0.04 |
+| fe           |            |            |     region |       time | time, region | interacted |
+
+When controlling for farm size measured by operating acres and a robust set of fixed effects, a 1% increase in farm income conditional on income being positive is associated with a 7.65% increase in welfare. 
+
+** Impact of OffFarmHHIncome on Welfare
+|--------------+------------+------------+------------+------------+--------------+------------|
+|              |        (1) |        (2) |        (3) |        (4) |          (5) |        (6) |
+|--------------+------------+------------+------------+------------+--------------+------------|
+| TotAcresOper |            |  0.0000*** |  0.0000*** |  0.0000*** |    0.0000*** |  0.0000*** |
+|              |            |          0 |          0 |          0 |            0 |          0 |
+| const        | -0.8795*** | -0.9213*** | -0.9954*** | -0.9022*** |   -0.9710*** | -0.9454*** |
+|              |    -0.0209 |    -0.0215 |    -0.0216 |    -0.0234 |      -0.0235 |     -0.031 |
+| logposinc    |  0.0798*** |  0.0818*** |  0.0801*** |  0.0815*** |    0.0800*** |  0.0801*** |
+|              |    -0.0019 |    -0.0019 |    -0.0019 |    -0.0019 |       -0.002 |     -0.002 |
+| negincind    |  0.8254*** |  0.8380*** |  0.8240*** |  0.8347*** |    0.8222*** |  0.8228*** |
+|              |    -0.0227 |    -0.0226 |    -0.0226 |    -0.0227 |      -0.0227 |    -0.0227 |
+| N            |      86856 |      86856 |      86856 |      86856 |        86856 |      86856 |
+| Adjusted R2  |       0.02 |       0.03 |       0.04 |       0.04 |         0.04 |       0.05 |
+| fe           |            |            |     region |       time | time, region | interacted |
+
+When we look at OffFarmHHIncome, a 1% increase in income (conditional on income being positive) is associated with an 8% increase in welfare. It is reassuring that these two numbers are similar. The impact of a dollar on welfare should not depend on whether it came from the farm or from other income sources.  
+** Impact of TotalHHIncome on Welfare
+
+|-------------+------------+------------+------------+------------+--------------+------------|
+|             |        (1) |        (2) |        (3) |        (4) |          (5) |        (6) |
+|-------------+------------+------------+------------+------------+--------------+------------|
+|             |            |          0 |          0 |          0 |            0 |          0 |
+| const       | -1.8496*** | -1.8103*** | -1.8841*** | -1.7809*** |   -1.8519*** | -1.8140*** |
+|             |    -0.0253 |    -0.0257 |    -0.0259 |    -0.0272 |      -0.0274 |    -0.0334 |
+| logposinc   |  0.1580*** |  0.1535*** |  0.1528*** |  0.1529*** |    0.1523*** |  0.1521*** |
+|             |    -0.0022 |    -0.0022 |    -0.0022 |    -0.0023 |      -0.0022 |    -0.0022 |
+| negincind   |  1.8516*** |  1.7892*** |  1.7790*** |  1.7814*** |    1.7730*** |  1.7685*** |
+|             |    -0.0262 |    -0.0272 |    -0.0269 |    -0.0272 |       -0.027 |     -0.027 |
+| N           |      86856 |      86856 |      86856 |      86856 |        86856 |      86856 |
+| Adjusted R2 |       0.07 |       0.07 |       0.08 |       0.08 |         0.08 |       0.08 |
+| fe          |            |            |     region |       time | time, region | interacted |
+
+When we look at the aggregate measure of income, TotalHHIncome, a 1% increase in income is a associated with a 15% increase in welfare. At first glance, this is a puzzling result. The distribution of TotalHHIncome looks very similar to FarmHHIncome, only shifted to the right to account for OffFarmIncome, which is weakly positive. The effect is to increase the number of farmers who fall in the positive portion of the income distribution. This means that while the regression on FarmHHIncome gives the marginal benefit of a dollar to top earners, this regression on TotalHHIncome incorporates the marginal benefit of a dollar to a wider range of households. I interpret this finding to indicate that medium-income households value a dollar more than top earners.
+
 
 * Estimating the impact of government payments on income
 \[
 I_{i} = \sum_{j=1}^{N} \beta_{j} G_{i}^{j} + \alpha X_{i} + \gamma_{gt} + \varepsilon_{i}
 \]
-- I :: Income in dollars for a given category of income
-- G :: income in dollars from government program $j = 1 \dots N$
-- X :: controsl (just using Total Acres Oper
-- $\gamma_{gt}$ :: year x region interacted fixed effects
+- $I_{it}$ :: Income in dollars for household $i$ in year $t$ a given category of income
+- $G_{it}$ :: income in dollars from government program $j = 1 \dots N$
+- $X_{it}$ :: controls, same as before.
+- $\gamma_{gt}$ :: year $\times$ region fixed effects, same as column 6 above.
 
-#+begin_src python :noweb yes :results output
-  <<imports>>
+#+begin_src python :noweb yes :exports none :results raw
+<<imports>>
+output = ""
+for i in range(1, len(income_on_gov.columns), 3):
+    output += df_to_org_table(income_on_gov.iloc[:,[0] + list(range(i,i+3))]) + "\n\n"
 
-  print(income_on_gov)
+return output
 #+end_src
 
-#+RESULTS:
-#+begin_example
-                   OffFarmHHIncome  ...    TotHHIncome    TotHHIncome
-0                              (1)  ...            (2)            (3)
-1         PROG_Arc           0.054  ...       1.384***       1.442***
-2                          (0.316)  ...        (0.357)        (0.376)
-3    PROG_DCP/ACRE        -0.258**  ...       1.337***       1.740***
-4                          (0.107)  ...        (0.301)        (0.318)
-5   PROG_Insurance         -0.016*  ...       0.561***       0.561***
-6                          (0.008)  ...        (0.095)        (0.094)
-7         PROG_MFP       -0.106***  ...          0.009          0.051
-8                          (0.040)  ...        (0.147)        (0.165)
-9         PROG_PLC          -0.064  ...          0.152          0.196
-10                         (0.115)  ...        (0.220)        (0.224)
-13    TotAcresOper                  ...         6.270*         6.046*
-14                                  ...        (3.241)        (3.307)
-15           const    82092.342***  ...  146360.894***  100513.963***
-16                      (1395.586)  ...     (3290.233)    (14620.947)
-17               N           86856  ...          86856          86856
-18     Adjusted R2            0.00  ...           0.01           0.01
-19              fe                  ...                    interacted
 
-[18 rows x 16 columns]
-#+end_example
+All discussions below will focus on column 3, which is the full model specification. 
 
-* test
+** OffFarmHHIncome
+
+|--------------+--------------+--------------+--------------|
+|              | (1)          | (2)          | (3)          |
+|--------------+--------------+--------------+--------------|
+| Arc          | 0.054        | 0.016        | 0.124        |
+|              | (0.316)      | (0.314)      | (0.334)      |
+| DCP/ACRE     | -0.258**     | -0.302***    | -0.118       |
+|              | (0.107)      | (0.106)      | (0.114)      |
+| Insurance    | -0.016*      | -0.019**     | -0.018*      |
+|              | (0.008)      | (0.009)      | (0.010)      |
+| MFP          | -0.106***    | -0.117***    | -0.195***    |
+|              | (0.040)      | (0.040)      | (0.062)      |
+| PLC          | -0.064       | -0.096       | -0.155       |
+|              | (0.115)      | (0.115)      | (0.122)      |
+| TotAcresOper |              | 1.362***     | 1.089**      |
+|              |              | (0.483)      | (0.472)      |
+| const        | 82092.342*** | 80876.196*** | 57743.742*** |
+|              | (1395.586)   | (1439.377)   | (3965.292)   |
+| N            | 86856        | 86856        | 86856        |
+| Adjusted R2  | 0.00         | 0.00         | 0.00         |
+| fe           |              |              | interacted   |
+
+One would expect government payments to be unrelated off-farm income. Interestingly, a dollar of MFP is associated with 0.20 less in income from outside sources. This could simply mean that farms who qualify for MFP are less likely to be hobby farms with wages and salary coming from outside sources. The coefficient on Insurance is small and it's statistical siginificance is weak at the 10% level. 
+
+** FARMHHI
+|--------------+--------------+--------------+--------------|
+|              | (1)          | (2)          | (3)          |
+|--------------+--------------+--------------+--------------|
+| Arc          | 2.311***     | 2.147***     | 2.105***     |
+|              | (0.199)      | (0.219)      | (0.226)      |
+| DCP/ACRE     | 2.613***     | 2.420***     | 2.662***     |
+|              | (0.254)      | (0.273)      | (0.287)      |
+| Insurance    | 0.599***     | 0.586***     | 0.585***     |
+|              | (0.097)      | (0.096)      | (0.096)      |
+| MFP          | 0.964***     | 0.916***     | 1.022***     |
+|              | (0.131)      | (0.133)      | (0.144)      |
+| PLC          | 1.340***     | 1.198***     | 1.288***     |
+|              | (0.184)      | (0.198)      | (0.199)      |
+| TotAcresOper |              | 5.934*       | 5.941*       |
+|              |              | (3.177)      | (3.259)      |
+| const        | 77147.427*** | 71848.099*** | 49288.872*** |
+|              | (1792.562)   | (2966.649)   | (14243.033)  |
+| N            | 86856        | 86856        | 86856        |
+| Adjusted R2  | 0.02         | 0.02         | 0.03         |
+| fe           |              |              | interacted   |
+
+Since FARMHHI includes government payments, by simple accounting, in a well-specified model, we would expect the program payments to enter with a coefficient of 1. While this appears to be the case for MFP and PLC, the range of estimates for the other three programs indicate there are some unobservables correlated with these government payments. For the ARC and DCP, the coefficient is above $2, which means every $1 of program income is associated with $2+ higher FARMHHI. Since we are not controlling for farm type, one explanation is that, holding farm size fixed, farm types that are eligible for ARC and ACRE payments are already more lucrative than those farms that do not qualify.
+
+A 1$ increase in Federal Crop Insurance payment is associated with $0.585 in household farm income. This implies that on average, crop insurance is not fully offsetting the losses that trigger a payment.
+
+
+** TOTHHI
+|--------------+---------------+---------------+---------------|
+|              | (1)           | (2)           | (3)           |
+|--------------+---------------+---------------+---------------|
+| Arc          | 2.365***      | 2.164***      | 2.230***      |
+|              | (0.341)       | (0.352)       | (0.370)       |
+| DCP/ACRE     | 2.355***      | 2.117***      | 2.544***      |
+|              | (0.285)       | (0.304)       | (0.322)       |
+| Insurance    | 0.582***      | 0.566***      | 0.567***      |
+|              | (0.097)       | (0.096)       | (0.096)       |
+| MFP          | 0.859***      | 0.800***      | 0.827***      |
+|              | (0.143)       | (0.145)       | (0.163)       |
+| PLC          | 1.276***      | 1.102***      | 1.133***      |
+|              | (0.211)       | (0.225)       | (0.228)       |
+| TotAcresOper |               | 7.296**       | 7.030**       |
+|              |               | (3.346)       | (3.411)       |
+| const        | 159239.769*** | 152724.295*** | 107032.613*** |
+|              | (2250.358)    | (3360.077)    | (14696.077)   |
+| N            | 86856         | 86856         | 86856         |
+| Adjusted R2  | 0.01          | 0.01          | 0.02          |
+| fe           |               |               | interacted    |
+
+Since TOTHHI is an aggregate of the two previous sections, there is nothing worth discussing here.
+
+** FarmHHIncome 
+|--------------+--------------+--------------+--------------|
+|              | (1)          | (2)          | (3)          |
+|--------------+--------------+--------------+--------------|
+| Arc          | 1.503***     | 1.367***     | 1.318***     |
+|              | (0.188)      | (0.208)      | (0.214)      |
+| DCP/ACRE     | 1.800***     | 1.640***     | 1.858***     |
+|              | (0.251)      | (0.270)      | (0.283)      |
+| Insurance    | 0.591***     | 0.580***     | 0.579***     |
+|              | (0.095)      | (0.094)      | (0.094)      |
+| MFP          | 0.165        | 0.126        | 0.246*       |
+|              | (0.130)      | (0.133)      | (0.142)      |
+| PLC          | 0.365**      | 0.248        | 0.351*       |
+|              | (0.176)      | (0.191)      | (0.191)      |
+| TotAcresOper |              | 4.908        | 4.957        |
+|              |              | (3.079)      | (3.159)      |
+| const        | 69867.810*** | 65484.698*** | 42770.221*** |
+|              | (1776.375)   | (2884.776)   | (14156.745)  |
+| N            | 86856        | 86856        | 86856        |
+| Adjusted R2  | 0.01         | 0.01         | 0.02         |
+| fe           |              |              | interacted   |
+
+FarmHHIncome was constructed wtih the goal of providing a measure of income that has no direct accounting relationship with government payments. The presence of statistically significant coefficients confirms that government payments are correlated with unobservables. Comparing these results to the FARMHHI results, the ARC, ACRE, MFP, and PLC coefficients all decrease by about $1. This is not surprising, as we have mechancially removed the dollars contributing to government payments.
+
+The insurance coefficient, however, remains at about $0.58 compared to the FARMHHI specification. This is puzzling. $1 more insurance payout is associated with $0.58 increase /regardless/ of whether income is accounting for that $1 or or not. This feels unlikely, and I'm investigating to make sure Insurance is included in the government payout variable that I removed.
+
+
+** TotHHIncome
+|              | TotHHIncome   | TotHHIncome   | TotHHIncome   |
+|--------------+---------------+---------------+---------------|
+|              | (1)           | (2)           | (3)           |
+| Arc          | 1.557***      | 1.384***      | 1.442***      |
+|              | (0.347)       | (0.357)       | (0.376)       |
+| DCP/ACRE     | 1.542***      | 1.337***      | 1.740***      |
+|              | (0.283)       | (0.301)       | (0.318)       |
+| Insurance    | 0.575***      | 0.561***      | 0.561***      |
+|              | (0.095)       | (0.095)       | (0.094)       |
+| MFP          | 0.060         | 0.009         | 0.051         |
+|              | (0.145)       | (0.147)       | (0.165)       |
+| PLC          | 0.301         | 0.152         | 0.196         |
+|              | (0.207)       | (0.220)       | (0.224)       |
+| TotAcresOper |               | 6.270*        | 6.046*        |
+|              |               | (3.241)       | (3.307)       |
+| const        | 151960.153*** | 146360.894*** | 100513.963*** |
+|              | (2250.294)    | (3290.233)    | (14620.947)   |
+| N            | 86856         | 86856         | 86856         |
+| Adjusted R2  | 0.01          | 0.01          | 0.01          |
+| fe           |               |               | interacted    |
+
+Recall that TotHHIncome is the sum of OffFarmIncome and FarmHHIncome, so there are no new insights to discuss here. 
+
+* Estimating impact of government payments on welfare
 \[
-w_{izt} = \sum_{j}^{N} \beta_{j} \mathbb{I}[G_{izt}^{j} > 0] + \sum_{j}^{N}\gamma_{j} \mathbb{I}[G_{izt}^{j}>0] * \log(G_{izt}^{j}) + \alpha X_{izt} + \delta_{z t} + \varepsilon_{izt}
+w_{izt} = \sum_{j}^{N} \beta_{j} \mathbf{I}[G_{izt}^{j} > 0] + \sum_{j}^{N}\gamma_{j} \mathbf{I}[G_{izt}^{j}>0] * \log(G_{izt}^{j}) + \alpha X_{izt} + \delta_{z t} + \varepsilon_{izt}
 \]
 
-- $w_{izt} :: log lambda for individual i in zip code z and year t
-- G :: government program payments in dollars
-- X :: same controls
-- \delta :: zip by time fixed effects
+- $w_{izt}$ :: log lambda for individual i in zip code z and year t
+- $G_{izt}^{j}$ :: payments from program $j$ in dollars
+- $X_{izt}$ :: Controls farm size and TotalHHIncome (net of gov't payments)
+- $\delta$ :: zip by time fixed effects
 
-#+begin_src python :noweb yes :results output
-  <<imports>>
-
-  print(w_on_gov_logs)
+#+begin_src python :noweb yes :exports none :results raw
+<<imports>>
+# return w_on_gov_logs.to_latex(escape=True, index=False)
+return df_to_org_table(w_on_gov_logs)
 #+end_src
 
-#+RESULTS:
-#+begin_example
-                               (1)         (2)         (3)
-2         TotAcresOper               0.0000***   0.0000***
-3                                     (0.0000)    (0.0000)
-4          TotHHIncome               0.0000***   0.0000***
-5                                     (0.0000)    (0.0000)
-6                const  -0.0823***  -0.1104***  -0.1255***
-7                         (0.0028)    (0.0034)    (0.0030)
-8         log_PROG_Arc   0.0706***   0.0621***   0.0216***
-9                         (0.0040)    (0.0040)    (0.0012)
-10   log_PROG_DCP/ACRE   0.0791***   0.0679***   0.0232***
-11                        (0.0038)    (0.0038)    (0.0015)
-12  log_PROG_Insurance   0.0415***   0.0335***   0.0156***
-13                        (0.0048)    (0.0049)    (0.0015)
-14        log_PROG_MFP   0.0701***   0.0635***   0.0259***
-15                        (0.0076)    (0.0076)    (0.0022)
-16        log_PROG_PLC   0.0617***   0.0549***   0.0214***
-17                        (0.0052)    (0.0052)    (0.0016)
-18        pos_PROG_Arc  -0.4985***  -0.4317***  -0.0445***
-19                        (0.0364)    (0.0363)    (0.0091)
-20   pos_PROG_DCP/ACRE  -0.5933***  -0.5035***  -0.0910***
-21                        (0.0337)    (0.0340)    (0.0116)
-22  pos_PROG_Insurance  -0.2880***  -0.2224***     -0.0107
-23                        (0.0478)    (0.0478)    (0.0104)
-24        pos_PROG_MFP  -0.5089***  -0.4452***   -0.0480**
-25                        (0.0787)    (0.0785)    (0.0198)
-26        pos_PROG_PLC  -0.4377***  -0.3884***  -0.0349***
-27                        (0.0490)    (0.0487)    (0.0114)
-28                   N       86856       86856       86856
-29         Adjusted R2        0.03        0.04        0.05
-#+end_example
+|---------------+------------+------------+------------|
+|               | (1)        | (2)        | (3)        |
+|---------------+------------+------------+------------|
+| TotAcresOper  |            | 0.0000***  | 0.0000***  |
+|               |            | (0.0000)   | (0.0000)   |
+| TotHHIncome   |            | 0.0000***  | 0.0000***  |
+|               |            | (0.0000)   | (0.0000)   |
+| const         | -0.0823*** | -0.1104*** | -0.1255*** |
+|               | (0.0028)   | (0.0034)   | (0.0030)   |
+| log ARC       | 0.0706***  | 0.0621***  | 0.0216***  |
+|               | (0.0040)   | (0.0040)   | (0.0012)   |
+| log DCP/ACRE  | 0.0791***  | 0.0679***  | 0.0232***  |
+|               | (0.0038)   | (0.0038)   | (0.0015)   |
+| log Insurance | 0.0415***  | 0.0335***  | 0.0156***  |
+|               | (0.0048)   | (0.0049)   | (0.0015)   |
+| log MFP       | 0.0701***  | 0.0635***  | 0.0259***  |
+|               | (0.0076)   | (0.0076)   | (0.0022)   |
+| log PLC       | 0.0617***  | 0.0549***  | 0.0214***  |
+|               | (0.0052)   | (0.0052)   | (0.0016)   |
+| pos Arc       | -0.4985*** | -0.4317*** | -0.0445*** |
+|               | (0.0364)   | (0.0363)   | (0.0091)   |
+| pos DCP/ACRE  | -0.5933*** | -0.5035*** | -0.0910*** |
+|               | (0.0337)   | (0.0340)   | (0.0116)   |
+| pos Insurance | -0.2880*** | -0.2224*** | -0.0107    |
+|               | (0.0478)   | (0.0478)   | (0.0104)   |
+| pos MFP       | -0.5089*** | -0.4452*** | -0.0480**  |
+|               | (0.0787)   | (0.0785)   | (0.0198)   |
+| pos PLC       | -0.4377*** | -0.3884*** | -0.0349*** |
+|               | (0.0490)   | (0.0487)   | (0.0114)   |
+| N             | 86856      | 86856      | 86856      |
+| Adjusted R2   | 0.03       | 0.04       | 0.05       |
 
-* Actions
-** TODO Convert Negatives to parenthesiss
-** TODO pretty print, write about em
+Column 1 is the OLS specification without controls or FE. Column 2 includes the controls, and column 3 is the full specification with controls and year by zip code fixed effects. The rows "log program-name" are our estimates of $\gamma$, while "pos program-name" are estimates of $\beta$. I will focus the discussion on the results of column 3.
+
+The program that appears to contribute the most to household welfare is the Market Facilitation Program: among those households who receive a payment, a 1% increase in payment is associated with a 2.6% inrease in household welfare. The least impactful program appears to be Federal Crop Insurance, where a 1% increase in payment is associated with a 1.5% increase in welfare. All estimates of log program payment are statistically significant to the 1% level.
+
+This specification gives rise to estimates of indicators on having received any payment from a program. These estimates are labelled "pos program-name." Across the board signs are negative, indicating that farmers who qualify for the various programs are those who have lower welfare. This makes sense as program payment is associated with have been affected by adverse market condition. Interestingly, the only estimate that is not distinguishable from zero is for Federal Crop Insurance. This implies farmers who qualify for (or at least take advantage of) federal crop insurance are no worse off than farmers who do not recieve a payment. Note that this says nothing about enrollment into Federal Crop Insurance, but strictly whether or not a payment occurred. The rest of the estimates range from -9% (Direct Payments and ACRE) to -3.5% (Price Loss Coverage). That is, receiving a payment from these programs is associated with x% lower welfare on average. 
+
+
+* Actions :noexport:
+** DONE Check the documentation on whether insurance is incorporated into income
+CLOSED: [2024-09-26 Thu 13:19]
+Note: fed. crop indem pmt is P552, which is NOT part of Gov't payments. My measure of income still includes fed.crop indem pmt.
+** TODO Remove P552 from my measure of income
+** TODO In regression 2: try including farm type indicators (with summary stats to show there's enough variation when controlling for region x year)
