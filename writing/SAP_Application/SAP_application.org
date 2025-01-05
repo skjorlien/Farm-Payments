@@ -59,6 +59,88 @@ Ligon, E. (2020). Estimating Household Welfare from Disaggregate Expenditures. h
 Roberts, M. J., Key, N., & O’Donoghue, E. (2006). Estimating the Extent of Moral Hazard in Crop Insurance Using Administrative Data. Review of Agricultural Economics, 28(3), 381–390.
 
 * Requested Output
-#+OPTIONS: toc:nil
-** Output
-We will be requesting output from our main regression specifications. In addition, we will produce summary statistics of household expenditures, income sources, and government payments. We are aware of the export requirements to protect individual farmer information and privacy, and will not be requesting any export that violates the the policy.
+# #+OPTIONS: toc:nil
+** Overview
+We will be requesting output from our main regression specifications. In addition, we will produce summary statistics of household expenditures, income sources, and government payments. We are aware of the export requirements to protect individual farmer information and privacy, and will not be requesting any export that violates the the policy. See section [[*Variables List]] for a list of specific ARMS variables considered.
+** Summary Statistics
+*** Household Expenditures
+We must demonstrate that there is sufficient variation in the categories of household expenditures to derive our measure of household welfare discussed in the Methodology section. As such, we will be requesting mean and standard deviation of each of the household expenditures variables listed in section [[*Variables List]].   
+*** Welfare
+Welfare in our context is measured as $w_{it} = -\log \lambda_{it}$ where $\lambda_{it}$ is the marginal utility of expenditure. We will be requesting summary statistics (mean, median, std. dev.) for this measure for each of the years. We may also request plots that show the distribution of these variables for each year 2006-2021.  
+*** Measures of Farm Income
+We consider farm income from both on- and off- farm sources. We will request the mean and std. dev. of these variables for each year 2006-2021. 
+*** Government Program Payments
+We will aggregate government program payments into 5 categories of payment programs, as described in section [[*Variables List]]. We will request the mean and std. dev. of these variables for each year 2006-2021. 
+*** Controlling Variables
+We have a few control variables included in our models, listed in section [[*Variables List]]. We will request the mean and std. dev. of these variables for each year 2006-2021. 
+** Model Outputs
+*** Estimating Impact of Income on Household Welfare
+We will request regression output from the following specification, where we determine the relationship between household income and welfare.
+\[
+w_{it} = \beta_{0} + \beta_{1}\mathbf{1}[Y_{it} >  0] \cdot \log{Y_{it}} + \beta_{2}\mathbf{1}[Y_{it} \leq 0 ] + \beta_{3} X_{it} + \gamma_{gt} + \varepsilon_{it}
+\]
+
++ $w_{it}$ :: a meaure of welfare in logs derived from CFE demands.
++ $Y_{it}$ :: a single measure of income in dollars. We have three different mesures of income used here. These are farm household income after removing government payments, off farm household income, and the sum of off- and on- farm household income. 
++ $X_{it}$ :: vector of controls. This includes farm size, measured by total acres of operation.
++ $\gamma_{gt}$ :: we will consider a range of fixed effect specifications over time, geography, and combinations of the two. We will not be requesting the estimates of fixed effects, but will be indicating in the regression table which combination of fixed effects were used.
+*** Estimating the impact of government payments on income
+We will request regression output from the following specification, where we determine the relationship between government payments and household income.
+\[
+Y_{i} = \sum_{j=1}^{N} \beta_{j} G_{i}^{j} + \alpha X_{i} + \gamma_{gt} + \varepsilon_{i}
+\]
+- $Y_{it}$ :: Income in dollars for household $i$ in year $t$ a given category of income
+- $G_{it}$ :: income in dollars from government program $j = 1 \dots N$
+- $X_{it}$ :: vector of controls. This includes farm size, measured by total acres of operation.
+- $\gamma_{gt}$ :: we will consider a range of fixed effect specifications over time, geography, and combinations of the two. We will not be requesting the estimates of fixed effects, but will be indicating in the regression table which combination of fixed effects were used.
+*** Estimating impact of government payments on welfare
+We will request regression output from the following specification, where we determine the effect of government payments on household welfare. Note that while the parameters of interest are estimated using variation at the zip code level, the requested output does not contain any zip code specific point estimate.
+
+\[
+w_{izt} = \sum_{j}^{N} \beta_{j} \mathbf{I}[G_{izt}^{j} > 0] + \sum_{j}^{N}\gamma_{j} \mathbf{I}[G_{izt}^{j}>0] * \log(G_{izt}^{j}) + \alpha X_{izt} + \delta_{zt} + \varepsilon_{izt}
+\]
+
+- $w_{izt}$ :: a measure of welfare in logs for individual i in zip code z and year t
+- $G_{izt}^{j}$ :: payments from program $j$ in dollars
+- $X_{izt}$ :: Controls farm size and household income net of government payments
+- $\delta_{zt}$ :: we will consider a range of fixed effect specifications over time, geography and combinations of the two. We will not be requesting the estimates of fixed effects, but will be indicating in the regression table which combination of fixed effects were used.
+
+** Variables List
+*** Household Expenditures
+The expense categories are listed here. Note that in years 2006 through 2012, the variable names differ slightly with "=_V1=" as a suffix to each of these variable names. Also, "=EXP_O=" and "=EXP_P=" are unavailable in years 2006 and 2007.
+
+- =EXP_A= :: Food Expenses
+- =EXP_E= :: Contributions to personal insurance and retirement plans
+- =EXP_G= :: All other family living expenses
+- =EXP_H= :: Health and/or dental insurance costs
+- =EXP_I= :: Health and medical out of pocket expenses
+- =EXP_J= :: Rent payment
+- =EXP_K= :: Utilities, housekeeping, and other household expenses
+- =EXP_L= :: Non-farm transportation - lease and public transit
+- =EXP_M= :: Non-farm transportation - fuel, maintenance, insurance
+- =EXP_N= :: Gifts to others
+- =EXP_O= :: Mortgage interest
+- =EXP_P= :: Property tax
+
+*** Government Program Payment
+Programs of interest will be grouped as follows:
+- DCP/ACRE :: =P525=, =P530=, =P523=
+- ARC (Agricultural Risk Coverage) :: =P465=, =P466=, =P1493=
+- PLC (Price Loss Coverage) :: =P464=
+- Federal Crop Insurance :: =P552=
+- Market Facilitation Program :: =P2649=
+*** Household Income
+- =FARMHHI= :: total household income from the farm
+- =TOTOFI= :: total household income from off-farm sources
+- =TOTHHI= :: sum of off- and on- farm sources of income
+
+Further, =FARMHHI= is calculated as a percentage of farm business income, which include government program payments. Thus, since we wish to control for income to estimate the effect of government program payments on welfare, we must construct a measure of income that does not include government program payments. We call this variable FarmIncome, which is calculated as follows: 
+
+- FarmIncome :: if =FARMORG= is 3, =FarmIncome= = =TOTHHI=. Otherwise, =FarmIncome= = =TOTHHI= - (=V4= * =FOHHPCTI_1=) where FARMORG determines the corporate status of the farm, =V4= is the aggregate of government program payments, and =FOHHPCTI_1= indicates the percentage of farm profits that flow to the primary operator household.
+*** Conrol/Other Variables
+- =HH_SIZE= :: Number of people in the household 
+- =ZIP5= :: zip code 
+- =P26= :: Total acres operated
+- =NASS5REG= :: Geographic region
+- =StateID= :: Unique identifier for the farm household
+

@@ -1,4 +1,4 @@
-% Created 2024-07-03 Wed 10:09
+% Created 2024-12-03 Tue 14:38
 % Intended LaTeX compiler: pdflatex
 \documentclass[11pt]{article}
 \usepackage[utf8]{inputenc}
@@ -12,17 +12,134 @@
 \usepackage{amssymb}
 \usepackage{capt-of}
 \usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{setspace}
+\linespread{1.5}
 \date{\today}
-\title{Output}
+\title{Requested Output}
 \hypersetup{
  pdfauthor={},
- pdftitle={Output},
+ pdftitle={Requested Output},
  pdfkeywords={},
  pdfsubject={},
- pdfcreator={Emacs 29.3 (Org mode 9.8)}, 
+ pdfcreator={Emacs 29.3 (Org mode 9.6.15)}, 
  pdflang={English}}
 \begin{document}
 
 \maketitle
-We will be requesting output from our main regression specifications. In addition, we will produce summary statistics of household expenditures, income sources, and government payments. We are aware of the export requirements to protect individual farmer information and privacy, and will not be requesting any export that violates the the policy.
+\section{Overview}
+\label{sec:org266715d}
+We will be requesting output from our main regression specifications. In addition, we will produce summary statistics of household expenditures, income sources, and government payments. We are aware of the export requirements to protect individual farmer information and privacy, and will not be requesting any export that violates the the policy. See section \ref{sec:org2cae32a} for a list of specific ARMS variables considered.
+\section{Summary Statistics}
+\label{sec:org9425eb0}
+\subsection{Household Expenditures}
+\label{sec:org9892cd3}
+We must demonstrate that there is sufficient variation in the categories of household expenditures to derive our measure of household welfare discussed in the Methodology section. As such, we will be requesting mean and standard deviation of each of the household expenditures variables listed in section \ref{sec:org2cae32a}.   
+\subsection{Welfare}
+\label{sec:orgfecc3a3}
+Welfare in our context is measured as \(w_{it} = -\log \lambda_{it}\) where \(\lambda_{it}\) is the marginal utility of expenditure. We will be requesting summary statistics (mean, median, std. dev.) for this measure for each of the years. We may also request plots that show the distribution of these variables for each year 2006-2021.  
+\subsection{Measures of Farm Income}
+\label{sec:org572fab0}
+We consider farm income from both on- and off- farm sources. We will request the mean and std. dev. of these variables for each year 2006-2021. 
+\subsection{Government Program Payments}
+\label{sec:orgb762dfb}
+We will aggregate government program payments into 5 categories of payment programs, as described in section \ref{sec:org2cae32a}. We will request the mean and std. dev. of these variables for each year 2006-2021. 
+\subsection{Controlling Variables}
+\label{sec:org1bfb875}
+We have a few control variables included in our models, listed in section \ref{sec:org2cae32a}. We will request the mean and std. dev. of these variables for each year 2006-2021. 
+\section{Model Outputs}
+\label{sec:orga8b80af}
+\subsection{Estimating Impact of Income on Household Welfare}
+\label{sec:org393bd03}
+We will request regression output from the following specification, where we determine the relationship between household income and welfare.
+\[
+w_{it} = \beta_{0} + \beta_{1}\mathbf{1}[Y_{it} >  0] \cdot \log{Y_{it}} + \beta_{2}\mathbf{1}[Y_{it} \leq 0 ] + \beta_{3} X_{it} + \gamma_{gt} + \varepsilon_{it}
+\]
+
+\begin{description}
+\item[{\(w_{it}\)}] a meaure of welfare in logs derived from CFE demands.
+\item[{\(Y_{it}\)}] a single measure of income in dollars. We have three different mesures of income used here. These are farm household income after removing government payments, off farm household income, and the sum of off- and on- farm household income.
+\item[{\(X_{it}\)}] vector of controls. This includes farm size, measured by total acres of operation.
+\item[{\(\gamma_{gt}\)}] we will consider a range of fixed effect specifications over time, geography, and combinations of the two. We will not be requesting the estimates of fixed effects, but will be indicating in the regression table which combination of fixed effects were used.
+\end{description}
+\subsection{Estimating the impact of government payments on income}
+\label{sec:org80c5c76}
+We will request regression output from the following specification, where we determine the relationship between government payments and household income.
+\[
+Y_{i} = \sum_{j=1}^{N} \beta_{j} G_{i}^{j} + \alpha X_{i} + \gamma_{gt} + \varepsilon_{i}
+\]
+\begin{description}
+\item[{\(Y_{it}\)}] Income in dollars for household \(i\) in year \(t\) a given category of income
+\item[{\(G_{it}\)}] income in dollars from government program \(j = 1 \dots N\)
+\item[{\(X_{it}\)}] vector of controls. This includes farm size, measured by total acres of operation.
+\item[{\(\gamma_{gt}\)}] we will consider a range of fixed effect specifications over time, geography, and combinations of the two. We will not be requesting the estimates of fixed effects, but will be indicating in the regression table which combination of fixed effects were used.
+\end{description}
+\subsection{Estimating impact of government payments on welfare}
+\label{sec:org80f5c64}
+We will request regression output from the following specification, where we determine the effect of government payments on household welfare. Note that while the parameters of interest are estimated using variation at the zip code level, the requested output does not contain any zip code specific point estimate.
+
+\[
+w_{izt} = \sum_{j}^{N} \beta_{j} \mathbf{I}[G_{izt}^{j} > 0] + \sum_{j}^{N}\gamma_{j} \mathbf{I}[G_{izt}^{j}>0] * \log(G_{izt}^{j}) + \alpha X_{izt} + \delta_{zt} + \varepsilon_{izt}
+\]
+
+\begin{description}
+\item[{\(w_{izt}\)}] a measure of welfare in logs for individual i in zip code z and year t
+\item[{\(G_{izt}^{j}\)}] payments from program \(j\) in dollars
+\item[{\(X_{izt}\)}] Controls farm size and household income net of government payments
+\item[{\(\delta_{zt}\)}] we will consider a range of fixed effect specifications over time, geography and combinations of the two. We will not be requesting the estimates of fixed effects, but will be indicating in the regression table which combination of fixed effects were used.
+\end{description}
+
+\section{Variables List}
+\label{sec:org2cae32a}
+\subsection{Household Expenditures}
+\label{sec:org251c604}
+The expense categories are listed here. Note that in years 2006 through 2012, the variable names differ slightly with "\texttt{\_V1}" as a suffix to each of these variable names. Also, "\texttt{EXP\_O}" and "\texttt{EXP\_P}" are unavailable in years 2006 and 2007.
+
+\begin{description}
+\item[{\texttt{EXP\_A}}] Food Expenses
+\item[{\texttt{EXP\_E}}] Contributions to personal insurance and retirement plans
+\item[{\texttt{EXP\_G}}] All other family living expenses
+\item[{\texttt{EXP\_H}}] Health and/or dental insurance costs
+\item[{\texttt{EXP\_I}}] Health and medical out of pocket expenses
+\item[{\texttt{EXP\_J}}] Rent payment
+\item[{\texttt{EXP\_K}}] Utilities, housekeeping, and other household expenses
+\item[{\texttt{EXP\_L}}] Non-farm transportation - lease and public transit
+\item[{\texttt{EXP\_M}}] Non-farm transportation - fuel, maintenance, insurance
+\item[{\texttt{EXP\_N}}] Gifts to others
+\item[{\texttt{EXP\_O}}] Mortgage interest
+\item[{\texttt{EXP\_P}}] Property tax
+\end{description}
+
+\subsection{Government Program Payment}
+\label{sec:org99bb475}
+Programs of interest will be grouped as follows:
+\begin{description}
+\item[{DCP/ACRE}] \texttt{P525}, \texttt{P530}, \texttt{P523}
+\item[{ARC (Agricultural Risk Coverage)}] \texttt{P465}, \texttt{P466}, \texttt{P1493}
+\item[{PLC (Price Loss Coverage)}] \texttt{P464}
+\item[{Federal Crop Insurance}] \texttt{P552}
+\item[{Market Facilitation Program}] \texttt{P2649}
+\end{description}
+\subsection{Household Income}
+\label{sec:org4cd94bd}
+\begin{description}
+\item[{\texttt{FARMHHI}}] total household income from the farm
+\item[{\texttt{TOTOFI}}] total household income from off-farm sources
+\item[{\texttt{TOTHHI}}] sum of off- and on- farm sources of income
+\end{description}
+
+Further, \texttt{FARMHHI} is calculated as a percentage of farm business income, which include government program payments. Thus, since we wish to control for income to estimate the effect of government program payments on welfare, we must construct a measure of income that does not include government program payments. We call this variable FarmIncome, which is calculated as follows: 
+
+\begin{description}
+\item[{FarmIncome}] if \texttt{FARMORG} is 3, \texttt{FarmIncome} = \texttt{TOTHHI}. Otherwise, \texttt{FarmIncome} = \texttt{TOTHHI} - (\texttt{V4} * \texttt{FOHHPCTI\_1}) where FARMORG determines the corporate status of the farm, \texttt{V4} is the aggregate of government program payments, and \texttt{FOHHPCTI\_1} indicates the percentage of farm profits that flow to the primary operator household.
+\end{description}
+\subsection{Conrol/Other Variables}
+\label{sec:org95292e7}
+\begin{description}
+\item[{\texttt{HH\_SIZE}}] Number of people in the household
+\item[{\texttt{ZIP5}}] zip code
+\item[{\texttt{P26}}] Total acres operated
+\item[{\texttt{NASS5REG}}] Geographic region
+\item[{\texttt{StateID}}] Unique identifier for the farm household
+\end{description}
 \end{document}

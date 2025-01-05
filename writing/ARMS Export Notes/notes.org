@@ -57,6 +57,7 @@ Income is a key variable in each of the specifications below. There are five mea
 - FarmHHIncome :: This is a measure of income that removes the sources of farm income due to government programs.
 - TotalHHIncome :: An aggregate of OffFarmHHIncome and FarmHHIncome. This represents an aggregate measure of income that is net of government payments
 
+
 * Estimating Impact of Income on Household Welfare
 
 \[
@@ -132,6 +133,7 @@ When we look at OffFarmHHIncome, a 1% increase in income (conditional on income 
 | fe          |            |            |     region |       time | time, region | interacted |
 
 When we look at the aggregate measure of income, TotalHHIncome, a 1% increase in income is a associated with a 15% increase in welfare. At first glance, this is a puzzling result. The distribution of TotalHHIncome looks very similar to FarmHHIncome, only shifted to the right to account for OffFarmIncome, which is weakly positive. The effect is to increase the number of farmers who fall in the positive portion of the income distribution. This means that while the regression on FarmHHIncome gives the marginal benefit of a dollar to top earners, this regression on TotalHHIncome incorporates the marginal benefit of a dollar to a wider range of households. I interpret this finding to indicate that medium-income households value a dollar more than top earners.
+
 
 * Estimating the impact of government payments on income
 \[
